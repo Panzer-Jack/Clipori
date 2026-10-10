@@ -5,6 +5,26 @@ import CliporiCore
 
 final class AppModelTests: XCTestCase {
     @MainActor
+    func testCategoryReorderUpdatesShelfWithoutChangingSelectedMemory() async throws {
+        _ = NSApplication.shared
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("CliporiOrderModel-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = try AppModel(directory: directory, preview: true)
+        model.categories = try await model.store.categories()
+        let original = model.categories
+        let memory = Memory(body: "Selected memory")
+        model.memories = [memory]; model.select(memory.id)
+        try await model.reorderCategories(Array(original.reversed()))
+        XCTAssertEqual(model.categories.map(\.id), original.reversed().map(\.id))
+        XCTAssertEqual(model.selected, memory)
+        XCTAssertFalse(model.reorderingCategories)
+        let saved = try await model.store.categories()
+        XCTAssertEqual(saved, model.categories)
+        try await model.reorderCategories(original)
+        XCTAssertEqual(model.categories, original)
+    }
+
+    @MainActor
     func testSearchReflectsEditsAndRapidQueries() async throws {
         _ = NSApplication.shared
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("CliporiModel-\(UUID().uuidString)")

@@ -155,7 +155,26 @@ public actor MemoryStore {
     }
 
     public func categories() throws -> [MemoryCategory] {
-        try db.rows("SELECT payload FROM categories ORDER BY rowid").map { try decoder.decode(MemoryCategory.self, from: Data($0[0].utf8)) }
+        let categories = try db.rows("SELECT payload FROM categories ORDER BY rowid").map { try decoder.decode(MemoryCategory.self, from: Data($0[0].utf8)) }
+        guard let value = try db.rows("SELECT value FROM metadata WHERE key='category-order'").first?.first else { return categories }
+        let ids = try decoder.decode([UUID].self, from: Data(value.utf8))
+        return Self.orderedCategories(categories, ids: ids)
+    }
+    /// Device-local display order. Keep current category contents, omit deleted IDs,
+    /// and append categories created since the drag began.
+    @discardableResult
+    public func reorderCategories(_ ids: [UUID]) throws -> [MemoryCategory] {
+        try db.transaction {
+            let ordered = Self.orderedCategories(try categories(), ids: ids)
+            let value = String(decoding: try encoder.encode(ordered.map(\.id)), as: UTF8.self)
+            try db.execute("INSERT OR REPLACE INTO metadata VALUES ('category-order', ?)", [.text(value)])
+            return ordered
+        }
+    }
+    private static func orderedCategories(_ categories: [MemoryCategory], ids: [UUID]) -> [MemoryCategory] {
+        var remaining = Dictionary(uniqueKeysWithValues: categories.map { ($0.id, $0) })
+        let ordered = ids.compactMap { remaining.removeValue(forKey: $0) }
+        return ordered + categories.filter { remaining[$0.id] != nil }
     }
     public func saveCategory(_ category: MemoryCategory) throws {
         try db.transaction { try writeCategory(category) }

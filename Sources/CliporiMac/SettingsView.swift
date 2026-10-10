@@ -15,7 +15,7 @@ struct SettingsView: View {
     @State private var categoryName = ""
     @State private var categoryColor = "lavender"
     @State private var categoryPinboard = false
-    @State private var editingCategory: UUID?
+    @State private var addingCategory = false
     @State private var launchAtLogin = false
     @State private var showRetentionConfirmation = false
     @State private var pendingPreferences: Preferences?
@@ -33,16 +33,19 @@ struct SettingsView: View {
             Picker(L("设置"), selection: $selectedTab) {
                 Text(L("通用")).tag(0); Text("AI").tag(1); Text(L("分类")).tag(2); Text(L("数据")).tag(3); Text(L("快捷键")).tag(4)
             }.pickerStyle(.segmented).padding(.horizontal, 24).padding(.bottom, 18)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    switch selectedTab {
-                    case 1: aiSettings
-                    case 2: categorySettings
-                    case 3: dataSettings
-                    case 4: ShortcutSettingsView(shortcuts: $draft.shortcuts, recording: { app.onShortcutRecording?($0) })
-                    default: generalSettings
-                    }
-                }.padding(.horizontal, 26).padding(.vertical, 4)
+            if selectedTab == 2 {
+                categorySettings.padding(.horizontal, 26).padding(.top, 4).padding(.bottom, 18)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        switch selectedTab {
+                        case 1: aiSettings
+                        case 3: dataSettings
+                        case 4: ShortcutSettingsView(shortcuts: $draft.shortcuts, recording: { app.onShortcutRecording?($0) })
+                        default: generalSettings
+                        }
+                    }.padding(.horizontal, 26).padding(.vertical, 4)
+                }
             }
             Divider()
             HStack {
@@ -123,38 +126,61 @@ struct SettingsView: View {
         }
     }
     private var categorySettings: some View {
-        Group {
-            sectionTitle(L("为记忆找到位置"), icon: "tag")
-            ForEach(app.categories) { category in
-                HStack(spacing: 10) {
-                    Image(systemName: category.isPinboard ? "pin.fill" : "tag").font(.system(size: 16))
-                        .foregroundStyle(Color.category(category.color))
-                    Text(category.displayName)
-                    if category.isPinboard { Image(systemName: "pin.fill").foregroundStyle(.secondary) }
-                    Spacer()
-                    Button(L("编辑")) { categoryName = category.name; categoryColor = category.color; categoryPinboard = category.isPinboard; editingCategory = category.id }.buttonStyle(.borderless)
-                    Button { Task { do { try await app.store.deleteCategory(id: category.id); await app.refreshCategories() } catch { feedback = error.localizedDescription } } } label: { Image(systemName: "trash").foregroundStyle(.secondary) }.buttonStyle(.borderless).help(L("删除分类，记录会移入未分类"))
-                }.padding(.vertical, 4)
-            }
-            Divider()
-            TextField(L("分类名称"), text: $categoryName).textFieldStyle(.roundedBorder)
-            Toggle(L("固定分类（Pinboard）· 其中记录不自动清理"), isOn: $categoryPinboard)
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                ForEach(["lavender", "blue", "mint", "peach", "pink"], id: \.self) { color in
-                    Button { categoryColor = color } label: {
-                        Circle().fill(Color.category(color)).frame(width: 22, height: 22).overlay(Circle().strokeBorder(.white, lineWidth: categoryColor == color ? 3 : 0)).padding(2)
-                    }.buttonStyle(.plain).accessibilityLabel(color)
-                }
+                sectionTitle(L("为记忆找到位置"), icon: "tag")
                 Spacer()
-                Button(editingCategory == nil ? L("添加分类") : L("保存分类")) {
-                    let category = MemoryCategory(id: editingCategory ?? UUID(), name: categoryName.trimmingCharacters(in: .whitespacesAndNewlines), color: categoryColor, isPinboard: categoryPinboard)
+                Text(L("拖动调整顺序")).font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+            List {
+                ForEach(app.categories) { category in
+                    CategorySettingsRow(category: category, save: { value in
+                        try await app.store.saveCategory(value)
+                        await app.refreshCategories(); feedback = L("分类已保存。")
+                    }, delete: {
+                        try await app.store.deleteCategory(id: category.id)
+                        await app.refreshCategories()
+                    }, reportError: { feedback = L("保存失败：") + $0.localizedDescription })
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0))
+                        .moveDisabled(app.reorderingCategories)
+                }
+                .onMove(perform: moveCategories)
+            }.listStyle(.plain).scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 38)
+                .frame(minHeight: 212)
+                .accessibilityIdentifier("category-order-list")
+            Divider()
+            Text(L("添加分类")).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+            HStack {
+                TextField(L("分类名称"), text: $categoryName).textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("new-category-name")
+                Button(L("添加分类")) {
+                    let category = MemoryCategory(name: categoryName.trimmingCharacters(in: .whitespacesAndNewlines), color: categoryColor, isPinboard: categoryPinboard)
+                    addingCategory = true
                     Task {
-                        do { try await app.store.saveCategory(category); await app.refreshCategories(); categoryName = ""; editingCategory = nil; categoryPinboard = false; feedback = L("分类已保存。") }
+                        defer { addingCategory = false }
+                        do { try await app.store.saveCategory(category); await app.refreshCategories(); categoryName = ""; categoryPinboard = false; feedback = L("分类已保存。") }
                         catch { feedback = error.localizedDescription }
                     }
-                }.disabled(categoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }.disabled(addingCategory || categoryName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            HStack {
+                CategoryColorPicker(selection: $categoryColor)
+                Spacer()
+                Toggle(L("固定分类"), isOn: $categoryPinboard)
+                    .help(L("固定分类（Pinboard）· 其中记录不自动清理"))
             }
             Text(L("删除分类后记录移入未分类，并恢复全局保留规则。固定分类由你手动整理，AI 不会自动放入。")).font(.system(size: 11)).foregroundStyle(.secondary)
+        }
+    }
+    private func moveCategories(from offsets: IndexSet, to destination: Int) {
+        var ordered = app.categories
+        ordered.move(fromOffsets: offsets, toOffset: destination)
+        guard ordered != app.categories else { return }
+        Task {
+            do { try await app.reorderCategories(ordered); feedback = L("分类顺序已保存。") }
+            catch { feedback = L("保存失败：") + error.localizedDescription }
         }
     }
     private var dataSettings: some View {

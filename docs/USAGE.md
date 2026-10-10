@@ -34,3 +34,7 @@ Direct pasting requires granting Clipori access in macOS Accessibility settings.
 Image capture supports clipboard PNG, TIFF, and JPEG data, including screenshots copied with the Control modifier. Screenshots saved only as files are not captured automatically. Images keep their original pixel dimensions and transparency, and copy back as PNG/TIFF for apps that accept image pasting. Use Edit to add a title or searchable notes. Image text recognition and image iCloud sync are not included in this local Mac release; no image pixels are sent to AI. Images above 128 MB or 80 megapixels display an error instead of being saved.
 
 The small card icon automatically indicates content type (text, link, image, or code). Its color follows the category; change category names and colors in Settings → Categories.
+
+In Settings → Categories, drag a category row or its left handle to reorder it. The shelf tabs follow the same order, which is saved on this Mac. New categories appear at the end. Click Edit on a row to change its name, color, and pinboard status in place. Use the checkmark or Return to save, or the cross or Escape to cancel. The form below only creates new categories.
+
+Click the color well to open the system color picker and choose any color or enter a hex value. Save the row to apply an existing category's color; new categories keep the chosen color when added.

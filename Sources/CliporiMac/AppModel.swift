@@ -8,6 +8,7 @@ final class AppModel: ObservableObject {
     @Published var shelfFocus = ShelfFocus.search
     @Published var memories: [Memory] = []
     @Published var categories: [MemoryCategory] = []
+    @Published private(set) var reorderingCategories = false
     @Published var preferences = Preferences()
     @Published var query = "" { didSet { if oldValue != query { scheduleSearch() } } }
     @Published var categoryID: UUID? { didSet { if oldValue != categoryID { scheduleSearch() } } }
@@ -334,6 +335,18 @@ final class AppModel: ObservableObject {
     func refreshCategories() async {
         do { categories = try await store.categories(); if let categoryID, !categories.contains(where: { $0.id == categoryID }) { self.categoryID = nil }; cancelAI(); await reload() }
         catch { errorMessage = error.localizedDescription }
+    }
+    func reorderCategories(_ ordered: [MemoryCategory]) async throws {
+        guard !reorderingCategories else { return }
+        reorderingCategories = true
+        defer { reorderingCategories = false }
+        let previous = categories
+        categories = ordered
+        do { categories = try await store.reorderCategories(ordered.map(\.id)) }
+        catch {
+            categories = (try? await store.categories()) ?? previous
+            throw error
+        }
     }
     func cleanExpired() async {
         do {

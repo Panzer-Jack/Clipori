@@ -53,7 +53,8 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             return event
         }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "square.on.square", accessibilityDescription: "Clipori")
+        statusItem.button?.image = MenuBarIcon.image
+        statusItem.button?.toolTip = "Clipori"
         statusItem.button?.target = self; statusItem.button?.action = #selector(statusClicked)
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         do { hotKey = try GlobalHotKey { [weak self] in MainActor.assumeIsolated { self?.shelf.toggle() } } }

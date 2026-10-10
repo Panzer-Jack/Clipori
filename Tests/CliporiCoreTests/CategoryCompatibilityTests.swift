@@ -22,9 +22,10 @@ final class CategoryCompatibilityTests: XCTestCase {
         var category = MemoryCategory(name: "My category", color: "pink")
         try await store.saveCategory(category)
         let reopened = try MemoryStore(url: url)
-        category.name = "Renamed"; category.color = "blue"; category.modifiedAt = Date()
+        category.name = "Renamed"; category.color = "#17BFA9"; category.modifiedAt = Date()
         try await reopened.saveCategory(category)
-        let saved = try await reopened.categories().first { $0.id == category.id }
+        let rereopened = try MemoryStore(url: url)
+        let saved = try await rereopened.categories().first { $0.id == category.id }
         XCTAssertEqual(saved, category)
         let remote = try MemoryStore(url: directory.appendingPathComponent("remote.sqlite"))
         _ = try await remote.mergeRemote(SyncEnvelope(category: category))

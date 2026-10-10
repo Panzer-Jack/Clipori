@@ -24,7 +24,7 @@
 用底部卡片栏查看复制记录，支持搜索、编辑和分类。
 
 <p align="center">
-  <img src="docs/assets/clipori-demo.gif" alt="Clipori 产品示意动画：唤起卡片栏、单击复制、多选拖入分类、用 AI 找回备忘" width="1200">
+  <img src="docs/assets/clipori-demo.gif" alt="Clipori 产品演示：唤起卡片栏、鼠标悬停时抬升与回弹、单击复制、多选拖入分类、用 AI 找回备忘" width="1200">
 </p>
 
 ## 功能
@@ -41,9 +41,15 @@
 **macOS 14 或更高版本 · 支持 Apple Silicon 与 Intel · 安装包无需 Xcode**
 
 1. **下载应用**：前往 [GitHub Releases](https://github.com/Panzer-Jack/Clipori/releases)，M 系列芯片选择 `arm64`，Intel 选择 `x86_64`。打开 DMG 或解压 ZIP，将 **Clipori.app** 拖入**应用程序**。
-2. **唤起卡片栏**：打开 Clipori，按 **`⇧⌘V`**。应用常驻菜单栏，复制文字或图片后便会自动收录。
-3. **开启直接粘贴**：在「系统设置 → 隐私与安全性 → 辅助功能」中开启 Clipori。未授权时仍可复制卡片，切回目标应用按 `⌘V` 粘贴。
-4. **配置 AI**：在「设置 → AI」选择协议，填写接口地址、模型和 API Key，测试后保存。不配置 AI 也能使用历史记录和关键词搜索。
+2. **首次启动前**，在「终端」执行以下命令，移除应用的隔离标记：
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Clipori.app
+   ```
+
+3. **唤起卡片栏**：打开 Clipori，按 **`⇧⌘V`**。应用常驻菜单栏，复制文字或图片后便会自动收录。
+4. **开启直接粘贴**：在「系统设置 → 隐私与安全性 → 辅助功能」中开启 Clipori。未授权时仍可复制卡片，切回目标应用按 `⌘V` 粘贴。
+5. **配置 AI**：在「设置 → AI」选择协议，填写接口地址、模型和 API Key，测试后保存。不配置 AI 也能使用历史记录和关键词搜索。
 
 > 早期构建使用临时签名，尚未通过 Apple 公证。如系统拦截了你信任的安装包，可按 [Apple 官方说明](https://support.apple.com/en-us/102445)使用「仍要打开」。如果 Releases 暂无安装包，可先[从源码构建](docs/DEVELOPMENT.zh-CN.md#从源码构建)。
 

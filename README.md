@@ -24,7 +24,7 @@
 Browse copied content in a bottom card shelf. Search, edit, and organize your history.
 
 <p align="center">
-  <img src="docs/assets/clipori-demo.gif" alt="Clipori illustrated walkthrough: open the shelf, click to copy, drag multiple cards into a category, then find a note with AI" width="1200">
+  <img src="docs/assets/clipori-demo.gif" alt="Clipori walkthrough: open the shelf, hover across cards to see them lift and settle, click to copy, drag cards into a category, and search with AI" width="1200">
 </p>
 
 ## Features
@@ -41,9 +41,15 @@ Browse copied content in a bottom card shelf. Search, edit, and organize your hi
 **macOS 14 or later · Apple Silicon and Intel · No Xcode needed for installers**
 
 1. **Download** a DMG or ZIP from [GitHub Releases](https://github.com/Panzer-Jack/Clipori/releases). Choose `arm64` for M-series Macs or `x86_64` for Intel, then drag **Clipori.app** into **Applications**.
-2. **Open** Clipori and press **`⇧⌘V`**. It lives in the menu bar. Start copying text or images to build your history.
-3. **Enable direct paste**, if you want it: System Settings → Privacy & Security → Accessibility → Clipori. Without this permission, copy a card and paste manually with `⌘V`.
-4. **Set up AI** in Settings → AI: choose a protocol, enter your endpoint, model, and API key, then test and save. Clipboard history and keyword search also work without AI.
+2. **Before the first launch**, run this command in Terminal to remove the app's quarantine attribute:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Clipori.app
+   ```
+
+3. **Open** Clipori and press **`⇧⌘V`**. It lives in the menu bar. Start copying text or images to build your history.
+4. **Enable direct paste**, if you want it: System Settings → Privacy & Security → Accessibility → Clipori. Without this permission, copy a card and paste manually with `⌘V`.
+5. **Set up AI** in Settings → AI: choose a protocol, enter your endpoint, model, and API key, then test and save. Clipboard history and keyword search also work without AI.
 
 > Early builds use an ad hoc signature and are not notarized by Apple. If macOS blocks a package you trust, follow [Apple's Open Anyway instructions](https://support.apple.com/en-us/102445). If Releases has no installers yet, [build from source](docs/DEVELOPMENT.md#build-from-source).
 

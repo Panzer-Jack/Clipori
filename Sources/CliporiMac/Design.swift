@@ -1,15 +1,46 @@
 import SwiftUI
+import CliporiCore
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 extension Color {
     static let clipori = Color(red: 0.65, green: 0.52, blue: 0.98)
     static func category(_ name: String) -> Color {
-        switch name {
-        case "blue": return Color(red: 0.42, green: 0.70, blue: 0.98)
-        case "peach": return Color(red: 1.0, green: 0.67, blue: 0.44)
-        case "mint": return Color(red: 0.39, green: 0.82, blue: 0.68)
-        case "pink": return Color(red: 0.94, green: 0.53, blue: 0.73)
-        default: return .clipori
-        }
+        let value = CategoryColor(storedValue: name)
+        return Color(.sRGB, red: value.red, green: value.green, blue: value.blue)
+    }
+
+    var categoryStoredValue: String? {
+        #if os(macOS)
+        guard let rgb = NSColor(self).usingColorSpace(.sRGB) else { return nil }
+        return CategoryColor(red: rgb.redComponent, green: rgb.greenComponent, blue: rgb.blueComponent).storedValue
+        #else
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let rgb = UIColor(self).cgColor.converted(to: space, intent: .defaultIntent, options: nil),
+              let components = rgb.components, components.count >= 3 else { return nil }
+        return CategoryColor(red: components[0], green: components[1], blue: components[2]).storedValue
+        #endif
+    }
+}
+
+struct CategoryColorPicker: View {
+    @Binding var selection: String
+    var compact = false
+
+    var body: some View {
+        let color = Binding<Color>(get: { Color.category(selection) }, set: { value in
+            if let storedValue = value.categoryStoredValue { selection = storedValue }
+        })
+        Group {
+            if compact {
+                ColorPicker(L("分类颜色"), selection: color, supportsOpacity: false).labelsHidden()
+            } else {
+                ColorPicker(L("分类颜色"), selection: color, supportsOpacity: false)
+            }
+        }.fixedSize().help(L("分类颜色")).accessibilityLabel(L("分类颜色"))
     }
 }
 

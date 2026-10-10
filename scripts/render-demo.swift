@@ -12,7 +12,7 @@ guard CommandLine.arguments.count >= 3 else {
 let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 guard let brand = NSImage(contentsOfFile: CommandLine.arguments[2]) else { fatalError("Missing brand artwork") }
-let width = 1200, height = 720, fps = 24, duration = 20.0
+let width = 1200, height = 720, fps = 50, duration = 20.0
 let white = NSColor(calibratedWhite: 0.97, alpha: 1)
 func color(_ hex: Int, _ alpha: Double = 1) -> NSColor {
     NSColor(srgbRed: Double((hex >> 16) & 255) / 255, green: Double((hex >> 8) & 255) / 255,
@@ -83,8 +83,21 @@ let categories: [(String, Double, Double, NSColor)] = [
 
 func drawCard(_ index: Int, x: Double, y: Double, h: Double, selected: Bool, hover: Double, moved: Bool) {
     let s = samples[index], tint = moved && [0, 2].contains(index) ? color(0xEF9EBC) : s.tint
-    let y = y - hover * 6, w = 206.0
-    box(x, y, w, h, 15, color(0xF2E9FF, 0.045), stroke: selected ? tint : color(0xFFFFFF, 0.14), line: selected ? 1.8 : 0.7)
+    let w = 206.0, highlight = clamp(hover)
+    NSGraphicsContext.saveGraphicsState()
+    defer { NSGraphicsContext.restoreGraphicsState() }
+    let context = NSGraphicsContext.current!.cgContext
+    context.translateBy(x: x + w / 2, y: y + h / 2 - hover * 6)
+    context.scaleBy(x: 1 + hover * 0.018, y: 1 + hover * 0.018)
+    context.translateBy(x: -x - w / 2, y: -y - h / 2)
+    NSGraphicsContext.saveGraphicsState()
+    let shadow = NSShadow()
+    shadow.shadowColor = color(0x000000, 0.06 + highlight * 0.05)
+    shadow.shadowBlurRadius = 6 + highlight * 4
+    shadow.shadowOffset = NSSize(width: 0, height: 3 + highlight * 2)
+    shadow.set()
+    box(x, y, w, h, 15, color(0xF2E9FF, 0.045 + highlight * 0.025), stroke: selected ? tint : color(0xFFFFFF, 0.14 + highlight * 0.14), line: selected ? 1.8 : 0.7)
+    NSGraphicsContext.restoreGraphicsState()
     box(x + 14, y + 14, 27, 27, 8, tint.withAlphaComponent(0.18))
     if index == 2 { text("‹/›", x + 17, y + 18, 14, tint, weight: .bold) }
     else if index == 4 { text("▧", x + 20, y + 17, 16, tint) }
@@ -115,7 +128,83 @@ func drawCard(_ index: Int, x: Double, y: Double, h: Double, selected: Bool, hov
     text("10:24", x + 160, y + h - 27, 9, muted)
 }
 
+// Drawing and hit testing share the same layout and continuous pointer trajectory.
+struct WalkthroughState {
+    let t: Double
+    var stage: Int { t < 4 ? 0 : t < 8 ? 1 : t < 13 ? 2 : 3 }
+    var answer: Double { ease((t - 15.45) / 0.45) }
+    var shelfY: Double {
+        let elapsed = max(0, t - 0.45)
+        return 268 + exp(-elapsed * 8) * cos(elapsed * 12) * 100 - answer * 26
+    }
+    var cardY: Double { shelfY + 123 + answer * 58 }
+    var cardHeight: Double { 220 - answer * 33 }
+    var dragging: Bool { t >= 9.3 && t < 11.15 }
+    var pointerVisible: Bool { t >= 1.4 }
+    var pointer: NSPoint {
+        let keys: [(Double, NSPoint)] = [
+            (1.4, NSPoint(x: 1150, y: 660)), (2.1, NSPoint(x: 188, y: cardY + 108)),
+            (2.7, NSPoint(x: 188, y: cardY + 108)), (3.6, NSPoint(x: 362, y: cardY + 108)),
+            (5.75, NSPoint(x: 362, y: cardY + 108)), (6.2, NSPoint(x: 585, y: cardY + 108)),
+            (7.3, NSPoint(x: 585, y: cardY + 108)), (7.9, NSPoint(x: 188, y: cardY + 108)),
+            (8.3, NSPoint(x: 188, y: cardY + 108)), (8.7, NSPoint(x: 590, y: cardY + 108)),
+            (9.3, NSPoint(x: 590, y: cardY + 108)), (10.7, NSPoint(x: 573, y: shelfY + 83)),
+            (11.5, NSPoint(x: 573, y: shelfY + 83)), (12.05, NSPoint(x: 585, y: cardY + 108)),
+            (12.5, NSPoint(x: 585, y: cardY + 108)), (13.2, NSPoint(x: 790, y: shelfY + 38)),
+            (14.45, NSPoint(x: 790, y: shelfY + 38)), (14.85, NSPoint(x: 998, y: shelfY + 38)),
+            (15.8, NSPoint(x: 998, y: shelfY + 38)), (16.5, NSPoint(x: 165, y: cardY + 92)),
+            (18.1, NSPoint(x: 165, y: cardY + 92)), (18.9, NSPoint(x: 1140, y: 655)),
+            (duration, NSPoint(x: 1140, y: 655))
+        ]
+        for pair in zip(keys, keys.dropFirst()) where t <= pair.1.0 {
+            let p = ease((t - pair.0.0) / (pair.1.0 - pair.0.0))
+            return NSPoint(x: mix(pair.0.1.x, pair.1.1.x, p), y: mix(pair.0.1.y, pair.1.1.y, p))
+        }
+        return keys.last!.1
+    }
+    func cardRect(_ index: Int) -> NSRect? {
+        if answer > 0.95 && index != 1 { return nil }
+        return NSRect(x: answer > 0.95 ? 56 : 56 + Double(index) * 220, y: cardY, width: 206, height: cardHeight)
+    }
+    func isSelected(_ index: Int) -> Bool {
+        if t < 4.25 { return index == 0 }
+        if t < 6.25 { return index == 1 }
+        if t < 8.1 { return index == 2 }
+        if t < 8.75 { return index == 0 }
+        if t < 13 { return index == 0 || index == 2 }
+        return index == 1
+    }
+}
+let hoverStep = 1.0 / 240
+let hoverFrames: [[Double]] = {
+    var positions = Array(repeating: 0.0, count: 5), velocities = positions, frames = [positions]
+    for step in 1...Int(duration / hoverStep) {
+        let scene = WalkthroughState(t: Double(step) * hoverStep)
+        let pointer = scene.pointer
+        for index in 0..<5 {
+            // Match MemoryCard's stationary hit region and enter/leave spring parameters.
+            let inside = scene.pointerVisible && !scene.dragging && (scene.cardRect(index)?.contains(pointer) == true)
+            let target = inside ? 1.0 : 0
+            let omega = 2 * Double.pi / (inside ? 0.28 : 0.24)
+            let damping = inside ? 0.64 : 0.86
+            let acceleration = omega * omega * (target - positions[index]) - 2 * damping * omega * velocities[index]
+            velocities[index] += acceleration * hoverStep
+            positions[index] += velocities[index] * hoverStep
+        }
+        frames.append(positions)
+    }
+    return frames
+}()
+
+func drawFooter(active: Int) {
+    text("ILLUSTRATED WALKTHROUGH  ·  SAMPLE DATA  ·  SCRIPTED AI", 35, 686, 9, muted)
+    for i in 0..<4 {
+        box(1016 + Double(i) * 34, 690, 26, 3, 1.5, i == active ? purple : color(0xFFFFFF, 0.15))
+    }
+}
+
 func draw(_ t: Double) {
+    let scene = WalkthroughState(t: t), pointer = scene.pointer
     let context = NSGraphicsContext.current!.cgContext
     color(0x101019).setFill(); NSBezierPath(rect: NSRect(x: 0, y: 0, width: width, height: height)).fill()
     // A designed, synthetic backdrop: never the user's wallpaper or a captured desktop.
@@ -129,7 +218,7 @@ func draw(_ t: Double) {
     box(982, 38, 162, 26, 13, color(0xFFFFFF, 0.045), stroke: color(0xFFFFFF, 0.12))
     dot(997, 48, 5, mint); text("NATIVE FOR macOS", 1010, 45, 10, color(0xC5BED7), weight: .medium)
 
-    let stage = t < 4 ? 0 : t < 8 ? 1 : t < 13 ? 2 : 3
+    let stage = scene.stage
     let starts = [0.0, 4, 8, 13]
     let headings = ["Your memories. One shortcut.", "Click once. Keep just this.", "Gather a few. Drop them home.", "Remember it in your own words."]
     let captions = ["A floating shelf for the little things worth keeping.", "Each click replaces the clipboard with the selected card.", "Command-click to select. Drag the whole group to a category.", "Ask a question. Find the memory behind the answer."]
@@ -145,10 +234,9 @@ func draw(_ t: Double) {
     NSGraphicsContext.restoreGraphicsState()
 
     let revealTime = max(0, t - 0.45)
-    let spring = 1 - exp(-revealTime * 8) * cos(revealTime * 12)
     let reveal = ease(revealTime / 0.25) * (1 - ease((t - 19.3) / 0.65))
-    let answer = ease((t - 15.45) / 0.45)
-    let sy = 268 + (1 - spring) * 100 - answer * 26
+    let answer = scene.answer
+    let sy = scene.shelfY
     let sh = 390 + answer * 26
     let moved = t >= 11.15
     NSGraphicsContext.saveGraphicsState(); context.setAlpha(reveal)
@@ -174,7 +262,7 @@ func draw(_ t: Double) {
     box(1103, sy + 20, 34, 32, 9, color(0xFFFFFF, 0.045)); text("☷", 1113, sy + 27, 17, muted)
 
     for (index, c) in categories.enumerated() {
-        let targeted = index == 5 && t > 10.35 && t < 11.3
+        let targeted = index == 5 && scene.dragging && NSRect(x: c.1, y: sy + 70, width: c.2, height: 28).contains(pointer)
         if index == 0 || targeted { box(c.1, sy + 70, c.2, 28, 8, targeted ? c.3.withAlphaComponent(0.22) : color(0xFFFFFF, 0.07), stroke: targeted ? c.3 : nil, line: 1.5) }
         dot(c.1 + 11, sy + 81, 5, c.3); text(c.0, c.1 + 23, sy + 78, 10, index == 0 || targeted ? white : muted, weight: index == 0 ? .semibold : .regular)
     }
@@ -187,53 +275,38 @@ func draw(_ t: Double) {
         text("From your note: “Saturday, outside”", 103, sy + 148, 10, purple)
         NSGraphicsContext.restoreGraphicsState()
     }
-    let cy = sy + 123 + answer * 58, cardHeight = 220 - answer * 33
+    let hoverFrame = min(hoverFrames.count - 1, max(0, Int(t / hoverStep)))
     NSGraphicsContext.saveGraphicsState(); panel.addClip()
     for index in 0..<5 {
-        if answer > 0.95 && index != 1 { continue }
-        let selected: Bool
-        if stage == 1 { selected = index == (t < 6.2 ? 1 : 2) }
-        else if stage == 2 { selected = t < 8.7 ? index == 0 : (index == 0 || index == 2) }
-        else { selected = index == (stage == 3 ? 1 : 0) }
-        let hovered = stage == 0 && index == 0 ? ease((t - 2) / 0.35) : 0
-        let x = answer > 0.95 ? 56 : 56 + Double(index) * 220
-        drawCard(index, x: x, y: cy, h: cardHeight, selected: selected, hover: hovered, moved: moved)
+        guard let rect = scene.cardRect(index) else { continue }
+        drawCard(index, x: rect.minX, y: rect.minY, h: rect.height, selected: scene.isSelected(index), hover: hoverFrames[hoverFrame][index], moved: moved)
     }
     NSGraphicsContext.restoreGraphicsState()
     dot(57, sy + sh - 19, 4, mint)
-    let status = stage == 1 ? "Copied · Clipboard replaced" : stage == 2 ? (moved ? "2 memories moved to Inspiration" : t < 8.7 ? "Command-click to select more" : "2 selected · Drag to a category") : "Demo space · Sample memories"
+    let status = stage == 1 ? (t < 4.25 ? "Click a card to copy" : "Copied · Clipboard replaced") : stage == 2 ? (moved ? "2 memories moved to Inspiration" : t < 8.75 ? "Command-click to select more" : "2 selected · Drag to a category") : "Demo space · Sample memories"
     text(status, 69, sy + sh - 24, 9, stage == 1 || moved && stage == 2 ? purple : muted)
     text("← →  Select     ↩  Paste     ⌘E  Edit     Esc  Hide", 873, sy + sh - 24, 9, muted)
 
-    var p = NSPoint(x: 1160, y: 660), click = 0.0
-    if stage == 0 {
-        let f = ease((t - 1.65) / 0.65); p = NSPoint(x: mix(1130, 192, f), y: mix(670, cy + 99, f))
-    } else if stage == 1 {
-        let f = ease((t - 5.75) / 0.45); p = NSPoint(x: mix(362, 585, f), y: cy + 108)
-        let elapsed = t - (t < 6.2 ? 4.25 : 6.25); click = elapsed > 0 && elapsed < 0.5 ? elapsed / 0.5 : 0
-    } else if stage == 2 {
-        let selecting = ease((t - 8.3) / 0.4), dragging = ease((t - 9.3) / 1.4)
-        p = NSPoint(x: mix(mix(188, 590, selecting), 573, dragging), y: mix(cy + 106, sy + 83, dragging))
+    let p = pointer
+    var click = 0.0
+    for clickTime in [4.25, 6.25, 8.1, 8.75, 14.9] {
+        let elapsed = t - clickTime
+        if elapsed > 0 && elapsed < 0.5 { click = elapsed / 0.5 }
+    }
+    if stage == 2 {
         if t < 9.25 { box(p.x + 28, p.y + 5, 36, 23, 6, color(0x15131E), stroke: color(0xFFFFFF, 0.2)); text("⌘", p.x + 36, p.y + 7, 15, purple) }
-        if t >= 9.3 && t < 11.15 {
+        if scene.dragging {
             box(p.x + 16, p.y + 33, 133, 62, 10, color(0x3B314E), stroke: purple.withAlphaComponent(0.55))
             box(p.x + 8, p.y + 26, 133, 62, 10, color(0x2C2639), stroke: purple)
             text("A little spark", p.x + 20, p.y + 38, 11, white, weight: .semibold)
             text("+ Spring, a little softer", p.x + 20, p.y + 58, 9, muted)
             dot(p.x + 125, p.y + 16, 22, purple); text("2", p.x + 132, p.y + 19, 12, color(0x20172F), weight: .bold)
         }
-    } else {
-        p = NSPoint(x: 998, y: sy + 38)
-        let elapsed = t - 14.9; click = elapsed > 0 && elapsed < 0.5 ? elapsed / 0.5 : 0
-        if answer > 0 { p = NSPoint(x: mix(998, 310, ease((t - 16.1) / 0.6)), y: mix(sy + 38, cy + 92, ease((t - 16.1) / 0.6))) }
     }
-    if t > 1.65 { cursor(p, clicking: click) }
+    if scene.pointerVisible { cursor(p, clicking: click) }
     NSGraphicsContext.restoreGraphicsState()
 
-    text("ILLUSTRATED WALKTHROUGH  ·  SAMPLE DATA  ·  SCRIPTED AI", 35, 686, 9, muted)
-    for i in 0..<4 {
-        box(1016 + Double(i) * 34, 690, 26, 3, 1.5, i == stage ? purple : color(0xFFFFFF, 0.15))
-    }
+    drawFooter(active: stage)
 }
 
 let singleTime = CommandLine.arguments.count > 3 ? Double(CommandLine.arguments[3]) : nil

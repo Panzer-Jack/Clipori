@@ -63,7 +63,7 @@ struct MobileSettings: View {
                     }
                     TextField(L("分类名称"), text: $categoryName)
                     Toggle(L("固定分类（Pinboard）"), isOn: $categoryPinboard)
-                    Picker(L("颜色"), selection: $categoryColor) { Text(L("薰衣草")).tag("lavender"); Text(L("天空")).tag("blue"); Text(L("薄荷")).tag("mint"); Text(L("蜜桃")).tag("peach"); Text(L("樱花")).tag("pink") }
+                    CategoryColorPicker(selection: $categoryColor)
                     Button(categoryID == nil ? L("添加分类") : L("保存分类")) {
                         let category = MemoryCategory(id: categoryID ?? UUID(), name: categoryName.trimmingCharacters(in: .whitespacesAndNewlines), color: categoryColor, isPinboard: categoryPinboard)
                         Task {
