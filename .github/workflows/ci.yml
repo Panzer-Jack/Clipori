@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: macos-15
+    timeout-minutes: 20
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+      CLIPORI_BUILD_DIR: build/ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check private documentation stays local
+        run: |
+          if [[ -n "$(git ls-files -- PRD.md local-docs/)" ]]; then
+            printf 'Local planning documents must not be tracked by Git.\n' >&2
+            exit 1
+          fi
+      - name: Test release scripts
+        run: ./scripts/test-release.sh
+      - name: Test app
+        run: swift test
+      - name: Build app
+        run: ./scripts/build-app.sh release

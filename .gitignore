@@ -60,3 +60,12 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Local app builds and runtime verification
+build/
+work/
+.DS_Store
+
+# Local-only planning documents
+/local-docs/
+/PRD.md

@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Clipori}",
+      "name": "Debug Clipori",
+      "target": "Clipori",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Clipori"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:Clipori}",
+      "name": "Release Clipori",
+      "target": "Clipori",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Clipori"
+    }
+  ]
+}
