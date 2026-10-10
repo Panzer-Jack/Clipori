@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">Clipori</h1>
 <p align="center"><strong>复制即备忘，想起时就来找回。</strong></p>
-<p align="center">轻巧、丝滑、可爱的 Mac AI 剪贴板与备忘录。</p>
+<p align="center">一款轻巧、丝滑、可爱的 Mac AI 剪贴板与备忘录。</p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-24232F?logo=apple&amp;logoColor=white" alt="macOS 14 或更高版本">

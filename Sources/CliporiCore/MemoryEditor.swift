@@ -12,12 +12,14 @@ public final class MemoryEditor: ObservableObject, Identifiable {
     private var generation = 0
     private var persisted = false
     private var dirty = false
+    private var discarded = false
     public init(record: Memory?, store: MemoryStore, onSave: @escaping @MainActor () async -> Void = {}) {
         let initial = record ?? Memory(body: "")
         self.record = initial; id = initial.id
         self.store = store; self.onSave = onSave; persisted = record != nil
     }
     public func changed() {
+        guard !discarded else { return }
         generation += 1; dirty = true; saveState = L("正在保存…")
         pendingSave?.cancel()
         pendingSave = Task {
@@ -28,6 +30,7 @@ public final class MemoryEditor: ObservableObject, Identifiable {
     }
     @discardableResult
     public func flush() async -> Bool {
+        guard !discarded else { return true }
         guard dirty else { return true }
         guard persisted || !record.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !record.title.isEmpty else { saveState = L("尚未输入"); return true }
         let version = generation
@@ -45,5 +48,11 @@ public final class MemoryEditor: ObservableObject, Identifiable {
         } catch { saveState = L("保存失败：") + error.localizedDescription; return false }
     }
     public func assign(_ id: UUID?) { record.categoryID = id; record.assignment = .manual; changed() }
+
+    /// Used after an explicit history clear; closing the window must not schedule another save.
+    public func discardChanges() {
+        discarded = true; dirty = false; generation += 1
+        pendingSave?.cancel(); pendingSave = nil
+    }
 }
 

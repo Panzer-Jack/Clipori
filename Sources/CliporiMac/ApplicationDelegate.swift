@@ -28,6 +28,21 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         model.onSettings = { [weak self] in self?.showSettings() }
         model.onEdit = { [weak self] record in self?.showEditor(record: record) }
         model.onSticky = { [weak self] record in self?.showEditor(record: record, sticky: true) }
+        model.onPrepareHistoryClear = { [weak self] in
+            guard let self else { return true }
+            for editor in Array(self.editors.values) {
+                if !(await editor.editor.flush()) { return false }
+            }
+            return true
+        }
+        model.onHistoryCleared = { [weak self] in
+            guard let self else { return }
+            for editor in Array(self.editors.values) {
+                editor.editor.discardChanges(); editor.window.close()
+            }
+            self.editors.removeAll()
+            self.previewWindow?.close(); self.previewWindow = nil
+        }
         model.onPaste = { [weak self] record in Task { await self?.paste(record) } }
         model.onCopy = { [weak self] record in Task { if await self?.clipboard.copy(record) == true { self?.model.toast(L("已复制")) } } }
         model.onPreview = { [weak self] record in self?.showPreview(record) }
@@ -127,6 +142,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         window.center(); NSApp.activate(ignoringOtherApps: true); window.makeKeyAndOrderFront(nil)
     }
     private func showEditor(record: Memory?, sticky: Bool = false, focusTitle: Bool = false) {
+        guard !model.isClearingHistory else { return }
         shelf.hide(restoreFocus: false)
         let editor = EditorModel(record: record, app: model)
         let id = editor.id

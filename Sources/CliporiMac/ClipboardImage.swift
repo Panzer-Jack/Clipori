@@ -26,6 +26,8 @@ actor ClipboardImageProcessor {
     private let cache = NSCache<NSString, CGImage>()
     init() { cache.totalCostLimit = 12 * 1024 * 1024 }
 
+    func clearCache() { cache.removeAllObjects() }
+
     func prepare(_ data: Data) throws -> Prepared {
         let source = try source(data)
         guard let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],

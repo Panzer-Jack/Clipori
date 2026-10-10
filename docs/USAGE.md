@@ -38,3 +38,5 @@ The small card icon automatically indicates content type (text, link, image, or 
 In Settings → Categories, drag a category row or its left handle to reorder it. The shelf tabs follow the same order, which is saved on this Mac. New categories appear at the end. Click Edit on a row to change its name, color, and pinboard status in place. Use the checkmark or Return to save, or the cross or Escape to cancel. The form below only creates new categories.
 
 Click the color well to open the system color picker and choose any color or enter a hex value. Save the row to apply an existing category's color; new categories keep the chosen color when added.
+
+In Settings → Data, click **Clear all memories…**, check the count and confirm. This deletes all text, images, notes, pinned items and items in pinboards, and closes open note windows. Categories, shortcuts and AI settings are kept. Clearing cannot be undone. With iCloud sync, the corresponding memories are also deleted from your other devices. New copies continue to be captured according to your settings.

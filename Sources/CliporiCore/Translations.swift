@@ -3,6 +3,16 @@ import Foundation
 
 enum Translations {
     static let english: [String: String] = [
+        "清空所有记录…": "Clear all memories…",
+        "清空所有记录": "Clear all memories",
+        "正在清空…": "Clearing…",
+        "清空全部 %d 条记录？": "Clear all %d memories?",
+        "已清空 %d 条记录。": "Cleared %d memories.",
+        "清空失败：": "Couldn’t clear memories: ",
+        "删除全部文字、图片和备忘，包括固定记录；保留分类及设置。": "Delete all text, images and notes, including pinned items. Categories and settings are kept.",
+        "所有文字、图片、手动备忘、固定记录及固定分类中的记录都会删除，已打开的备忘窗口会关闭。分类、快捷键和 AI 配置保留。此操作无法撤销。": "All text, images, notes, pinned items and items in pinboards will be deleted, and open note windows will close. Categories, shortcuts and AI settings are kept. This cannot be undone.",
+        "使用 iCloud 同步时，其他设备上的对应记录也会删除。": "With iCloud sync, the corresponding memories will also be deleted from your other devices.",
+        "有备忘未能保存，请处理后再清空记录。": "A note could not be saved. Resolve the save error before clearing memories.",
         "分类已保存。": "Category saved.",
         "图片": "Image",
         "图片不支持纯文本粘贴，请使用普通粘贴。": "Images cannot be pasted as plain text. Use regular paste.",

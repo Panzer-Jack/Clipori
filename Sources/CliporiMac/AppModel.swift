@@ -29,6 +29,7 @@ final class AppModel: ObservableObject {
     @Published var captureCount = 0
     @Published var presentation = UUID()
     @Published var hasMore = false
+    @Published private(set) var isClearingHistory = false
 
     let store: MemoryStore
     let dataDirectory: URL
@@ -51,12 +52,15 @@ final class AppModel: ObservableObject {
     var onSettings: (() -> Void)?
     var onDismiss: (() -> Void)?
     var onSticky: ((Memory) -> Void)?
+    var onPrepareHistoryClear: (() async -> Bool)?
+    var onHistoryCleared: (() -> Void)?
     private var searchTask: Task<Void, Never>?
     private var aiTask: Task<Void, Never>?
     private lazy var classifier = ClassificationRunner(store: store)
     private var noticeTask: Task<Void, Never>?
     private var loadingMore = false
     private var generation = 0
+    private var historyRevision = 0
     private var cleanupTimer: Timer?
 
     var displayed: [Memory] { aiResults ?? memories }
@@ -140,15 +144,22 @@ final class AppModel: ObservableObject {
         }
     }
     func accept(_ record: Memory) async {
+        guard !isClearingHistory else { return }
+        let revision = historyRevision
         do {
             try await store.save(record)
+            guard revision == historyRevision else { return }
             try await didCapture()
         } catch { errorMessage = error.localizedDescription }
     }
     func acceptImage(_ data: Data, record: Memory) async {
+        guard !isClearingHistory else { return }
+        let revision = historyRevision
         do {
             let image = try await ClipboardImageProcessor.shared.prepare(data)
+            guard !isClearingHistory, revision == historyRevision else { return }
             _ = try await store.saveImage(record, png: image.png, thumbnail: image.thumbnail, size: image.size)
+            guard revision == historyRevision else { return }
             try await didCapture()
         } catch { toast(error.localizedDescription) }
     }
@@ -166,10 +177,13 @@ final class AppModel: ObservableObject {
         cancelAI(); await reload(); startClassification()
     }
     func delete(_ record: Memory) {
+        guard !isClearingHistory else { return }
+        let revision = historyRevision
         Task {
             do {
                 guard let latest = try await store.record(id: record.id) else { return }
                 try await store.delete(id: record.id)
+                guard revision == historyRevision else { return }
                 deletedRecords.append(latest); if deletedRecords.count > 20 { deletedRecords.removeFirst() }
                 try await store.pruneImages(keeping: retainedAttachments)
                 cancelAI(); await reload(); toast(L("记录已删除，可撤销"))
@@ -274,6 +288,8 @@ final class AppModel: ObservableObject {
     func pasteSelected(plainText: Bool = false) { if let selected { paste(selected, plainText: plainText) } }
     func copy(_ record: Memory) { onCopy?(record) }
     func undoDeletion() {
+        guard !isClearingHistory else { return }
+        let revision = historyRevision
         guard var record = deletedRecords.popLast() else { return }
         let original = record
         restoringRecords.append(original)
@@ -281,9 +297,31 @@ final class AppModel: ObservableObject {
         record.id = UUID(); record.modifiedAt = Date()
         Task {
             defer { restoringRecords.removeAll { $0.id == original.id } }
-            do { try await save(record); toast(L("已恢复记录")) }
-            catch { deletedRecords.append(original); errorMessage = error.localizedDescription }
+            guard revision == historyRevision else { return }
+            do { try await save(record); if revision == historyRevision { toast(L("已恢复记录")) } }
+            catch { if revision == historyRevision { deletedRecords.append(original); errorMessage = error.localizedDescription } }
         }
+    }
+
+    @discardableResult
+    func clearHistory() async throws -> Int {
+        guard !isClearingHistory else { return 0 }
+        isClearingHistory = true; historyRevision += 1
+        generation += 1; searchTask?.cancel(); cancelAI(); classifier.stop()
+        defer { isClearingHistory = false; startClassification() }
+        // Finish pending autosaves before the transaction, including a new note's first save.
+        if let prepare = onPrepareHistoryClear, !(await prepare()) { throw HistoryClearError.unsavedNote }
+        let count = try await store.deleteAllMemories()
+        query = ""; categoryID = nil
+        generation += 1; searchTask?.cancel(); cancelAI()
+        deletedRecords.removeAll(); restoringRecords.removeAll()
+        memories = []; select(nil); endDragging()
+        pendingIncoming = 0; totalCount = 0; hasMore = false
+        noticeTask?.cancel(); notice = nil; errorMessage = nil
+        onHistoryCleared?()
+        await ClipboardImageProcessor.shared.clearCache()
+        await reload()
+        return count
     }
     func moveCategory(_ delta: Int) {
         let ids: [UUID?] = [nil] + categories.map { Optional($0.id) }
@@ -355,7 +393,7 @@ final class AppModel: ObservableObject {
         } catch { errorMessage = error.localizedDescription }
     }
     func startClassification() {
-        guard preferences.ai.autoClassify, preferences.ai.isConfigured, !demo else { return }
+        guard preferences.ai.autoClassify, preferences.ai.isConfigured, !demo, !isClearingHistory else { return }
         do {
             classifier.start(client: try makeAIClient(), onApply: { [weak self] record in
                 guard let self, let index = self.memories.firstIndex(where: { $0.id == record.id }) else { return }
@@ -385,4 +423,9 @@ final class AppModel: ObservableObject {
             try await store.save(record)
         }
     }
+}
+
+private enum HistoryClearError: LocalizedError {
+    case unsavedNote
+    var errorDescription: String? { L("有备忘未能保存，请处理后再清空记录。") }
 }

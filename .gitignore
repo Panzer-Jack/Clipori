@@ -66,6 +66,6 @@ build/
 work/
 .DS_Store
 
-# Local-only planning documents
+# Local-only planning documents and promotional materials
 /local-docs/
 /PRD.md

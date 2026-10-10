@@ -71,6 +71,10 @@ public actor MemoryStore {
     }
 
     func write(_ record: Memory) throws {
+        // A delayed editor, pin toggle or AI task must not revive a deleted identity.
+        guard try db.rows("SELECT id FROM tombstones WHERE id=? AND kind='memory'", [.text(record.id.uuidString)]).isEmpty else {
+            throw DatabaseError(message: L("原记录已被删除，请复制内容后另建备忘。"))
+        }
         let payload = String(decoding: try encoder.encode(record), as: UTF8.self)
         try db.execute("INSERT OR REPLACE INTO memories VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [
             .text(record.id.uuidString), .text(record.body), .text(record.title),
@@ -135,6 +139,20 @@ public actor MemoryStore {
             try db.execute("DELETE FROM memories WHERE id=?", [.text(id.uuidString)])
             try db.execute("DELETE FROM memory_search WHERE id=?", [.text(id.uuidString)])
             try db.execute("INSERT OR REPLACE INTO tombstones VALUES (?, 'memory', ?)", [.text(id.uuidString), .number(date.timeIntervalSince1970)])
+        }
+    }
+
+    /// Explicitly clears all saved memories, including pins and image attachments.
+    /// Keep categories, preferences and deletion markers so sync cannot bring old records back.
+    @discardableResult
+    public func deleteAllMemories(at date: Date = Date()) throws -> Int {
+        try db.transaction {
+            let deletedCount = try count()
+            try db.execute("INSERT OR REPLACE INTO tombstones SELECT id, 'memory', ? FROM memories", [.number(date.timeIntervalSince1970)])
+            try db.execute("DELETE FROM memory_search")
+            try db.execute("DELETE FROM memories")
+            try db.execute("DELETE FROM image_attachments")
+            return deletedCount
         }
     }
 

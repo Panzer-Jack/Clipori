@@ -34,7 +34,7 @@ final class ClipboardMonitor {
     func poll() {
         guard pasteboard.changeCount != lastChange else { return }
         lastChange = pasteboard.changeCount
-        guard model.ready, !model.preferences.capturePaused else { return }
+        guard model.ready, !model.preferences.capturePaused, !model.isClearingHistory else { return }
         let app = source()
         guard app.processID != ProcessInfo.processInfo.processIdentifier else { return }
         guard !model.preferences.ignoredApps.contains(app.bundleID ?? "") else { return }
