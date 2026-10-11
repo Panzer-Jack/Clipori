@@ -22,6 +22,8 @@ No app release or version tag is needed for website updates. To use a custom dom
 
 The existing English and Chinese GIFs are converted into H.264 MP4s with fast-start metadata for the landing page. They loop silently without native video controls; a discreet play/pause button remains accessible. GIF links remain available. Playback pauses when scrolled offscreen or the tab is hidden, then resumes on return unless the visitor paused it. Reduced-motion preferences disable automatic playback.
 
+Keep exported GIFs below the host's 25 MiB per-file limit. The Chinese GIF is lightly compressed with `gifsicle -O3 --lossy=10 input.gif -o output.gif` (about 19.2 MiB), preserving its 1200 × 675 dimensions, 46-second loop, and animation timing. Recheck file sizes after regenerating media.
+
 The six independent feature demos use HTML/CSS animation with fictional data: capture, paste, multi-select categorization, AI recall, optional AI classification, and editing or appending to saved memories. Switch with tabs, previous/next buttons, arrow keys, or a horizontal swipe. Only the active, visible scene animates. A pause button and reduced-motion static compositions are provided. Scroll effects use IntersectionObserver and a single animation frame per scroll update; they do not hijack scrolling.
 
 ```sh
