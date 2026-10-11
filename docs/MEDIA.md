@@ -38,6 +38,7 @@ Output:
 
 - `docs/assets/clipori-demo.gif` — 1200 × 720, 20-second loop, 50 fps (2-centisecond frame delays).
 - `docs/assets/clipori-demo-poster.png` — a still alternative for readers who prefer no animation.
+- The landing page uses smaller H.264 MP4 copies and JPEG posters in English and Chinese, with pause controls and reduced-motion support. See [WEBSITE.md](WEBSITE.md) for conversion and deployment instructions.
 - Temporary frames and renderer binaries stay in the ignored `work/readme-demo/` directory.
 
 [`render-demo.swift`](../scripts/render-demo.swift) draws every frame offscreen using AppKit. Its only image input is the repository's cat icon. The backdrop, image card, note text, and AI reply are all fictional and defined in that script. It does **not** read the desktop, screen, clipboard, app database, Keychain, or network, and does not change the running app. This also means translucent surfaces cannot reveal anything from the user's desktop.

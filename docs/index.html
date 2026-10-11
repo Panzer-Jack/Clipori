@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7fc">
+  <meta name="description" content="A lightweight, open-source AI clipboard and notes app for Mac. Keep what you copy, find it with AI, and get back to creating.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Clipori — Keep every little spark.">
+  <meta property="og:description" content="A little memory for your Mac. Clipboard history, notes, and AI recall, a shortcut away.">
+  <meta property="og:image" content="https://panzer-jack.github.io/Clipori/assets/clipori-demo-poster-en.jpg">
+  <meta property="og:url" content="https://panzer-jack.github.io/Clipori/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://panzer-jack.github.io/Clipori/">
+  <link rel="icon" type="image/png" href="assets/clipori-icon.png">
+  <link rel="stylesheet" href="site.css">
+  <script src="site.js" defer></script>
+  <script src="motion.js" defer></script>
+  <link rel="stylesheet" href="motion.css">
+  <title>Clipori — Keep every little spark.</title>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip">Skip to content</a>
+  <header class="site-header wrap">
+    <a class="brand" href="#" aria-label="Clipori home"><img src="assets/clipori-icon.png" width="38" height="38" alt=""><span>Clipori</span><span class="brand-label" data-i18n="brandLabel">a little memory</span></a>
+    <nav aria-label="Main navigation" data-i18n-aria="navigation">
+      <a class="nav-link" href="#features" data-i18n="navFeatures">Why Clipori</a>
+      <a class="nav-link" href="#install" data-i18n="navInstall">Get started</a>
+      <a class="nav-link github-nav" href="https://github.com/Panzer-Jack/Clipori">GitHub <span aria-hidden="true">↗</span></a>
+      <button class="language-switch" id="language-switch" type="button" aria-label="切换到中文"><span aria-hidden="true">◎</span> <span id="language-label">中文</span></button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <p class="eyebrow"><span class="status-dot"></span><span data-i18n="eyebrow">MADE FOR MAC. OPEN SOURCE.</span></p>
+      <h1 id="hero-title"><span data-i18n="heroLineOne">Keep every</span><br><span class="accent" data-i18n="heroLineTwo">little spark.</span><span class="hero-star" aria-hidden="true">✧</span></h1>
+      <p class="hero-description" data-i18n="heroDescription">The link, the screenshot, that fleeting idea. A lightweight AI clipboard that remembers, so you can keep creating.</p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="https://github.com/Panzer-Jack/Clipori/releases/latest"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg><span data-i18n="download">Download for Mac</span></a>
+        <a class="button button-secondary" href="#demo" id="watch-demo"><span class="play-small" aria-hidden="true">▶</span><span data-i18n="watchDemo">See it in motion</span></a>
+      </div>
+      <p class="compatibility" data-i18n="compatibility">macOS 14+ · Apple Silicon & Intel · Free & open source</p>
+      <div class="hero-note" aria-hidden="true"><span>⌘</span><span data-i18n="heroNote">A little less remembering.<br>A little more making.</span></div>
+    </section>
+
+    <section class="demo-section wrap" id="demo" aria-labelledby="demo-title">
+      <div class="demo-topline"><h2 id="demo-title" data-i18n="demoTitle">Your clipboard, with a little more life.</h2><span class="shortcut-pill"><kbd>⇧</kbd><kbd>⌘</kbd><kbd>V</kbd><span data-i18n="oneShortcut">One shortcut away</span></span></div>
+      <div class="demo-surround">
+        <div class="demo-window">
+          <div class="window-bar"><span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span data-i18n="demoWindow">A little tour of Clipori</span><span aria-hidden="true">✦</span></div>
+          <video id="demo-video" autoplay muted loop playsinline preload="metadata" disablepictureinpicture width="1200" height="720" poster="assets/clipori-demo-poster-en.jpg" aria-label="Clipori illustrated feature walkthrough" data-i18n-aria="videoLabel">
+            <source src="assets/clipori-demo-en.mp4" type="video/mp4">
+            <p><a href="assets/clipori-demo.gif" data-i18n="gifFallback">Watch the GIF walkthrough</a></p>
+          </video>
+        </div>
+        <div class="demo-caption"><p data-i18n="demoCaption">Illustrated walkthrough · Sample content & scripted AI replies</p><button id="video-toggle" class="video-toggle" type="button" data-i18n="play">Play demo</button></div>
+      </div>
+      <div class="demo-footnote"><span data-i18n="demoHint">Copy. Recall. Make room for the next idea.</span><a id="gif-link" href="assets/clipori-demo.gif" data-i18n="gifFallback">Watch the GIF walkthrough</a></div>
+    </section>
+
+    <section class="features wrap" id="features" aria-labelledby="features-title">
+      <div class="section-heading"><p class="eyebrow" data-i18n="featuresEyebrow">SMALL APP. A LITTLE MORE HEADSPACE.</p><h2 id="features-title" data-i18n="featuresTitle">Less searching. More doing.</h2></div>
+      <div class="feature-tour" id="feature-tour" role="region" aria-label="Explore Clipori features" data-i18n-aria="tourLabel" aria-roledescription="carousel" tabindex="0">
+        <div class="tour-tabs" role="tablist" aria-label="Feature demos" data-i18n-aria="tourTabs">
+          <button type="button" role="tab" id="tour-tab-0" aria-controls="tour-panel-0" aria-selected="true" data-slide="0" data-i18n="tourCapture">Copy & remember</button>
+          <button type="button" role="tab" id="tour-tab-1" aria-controls="tour-panel-1" aria-selected="false" tabindex="-1" data-slide="1" data-i18n="tourPaste">Paste in a heartbeat</button>
+          <button type="button" role="tab" id="tour-tab-2" aria-controls="tour-panel-2" aria-selected="false" tabindex="-1" data-slide="2" data-i18n="tourOrganize">Drag & organize</button>
+          <button type="button" role="tab" id="tour-tab-3" aria-controls="tour-panel-3" aria-selected="false" tabindex="-1" data-slide="3" data-i18n="tourRecall">Find it with AI</button>
+<button type="button" role="tab" id="tour-tab-4" aria-controls="tour-panel-4" aria-selected="false" tabindex="-1" data-slide="4" data-i18n="tourClassify">AI sorting</button>
+<button type="button" role="tab" id="tour-tab-5" aria-controls="tour-panel-5" aria-selected="false" tabindex="-1" data-slide="5" data-i18n="tourEdit">Edit & add notes</button>
+        </div>
+        <div class="tour-viewport">
+          <div class="tour-track">
+            <section class="tour-slide is-active" role="tabpanel" id="tour-panel-0" aria-labelledby="tour-tab-0">
+              <div class="tour-copy"><span class="tour-index">01 <span>/ 06</span></span><h3 data-i18n="captureTitle">Copy it once.<br>Come back anytime.</h3><p data-i18n="captureDescription">Text, links, screenshots. A small action becomes a little memory, ready whenever you need it.</p><span class="tour-key"><kbd>⌘C</kbd><span data-i18n="captureHint">Your everyday copy, remembered.</span></span></div>
+              <div class="tour-stage scene-capture" aria-hidden="true">
+                <div class="scene-orbit"></div>
+                <div class="mini-window capture-source"><div class="mini-title"><i></i><i></i><i></i><span data-i18n="demoNotes">Notes</span></div><div class="mini-body"><small data-i18n="demoWeekend">A little weekend plan</small><h4 data-i18n="demoBookshop">The rainy-day bookshop</h4><p class="copy-highlight" data-i18n="demoAddress">42 Silver Road · A cat by the door.</p><p class="mini-muted" data-i18n="demoTime">Saturday, 10:00–20:00</p></div></div>
+                <div class="copy-key">⌘ C</div>
+                <div class="mini-shelf capture-shelf"><div class="mini-shelf-title"><img src="assets/clipori-icon.png" width="20" height="20" alt="">Clipori <span data-i18n="demoMemories">All memories</span></div><div class="mini-cards"><div class="mini-card new-memory"><span class="mini-icon">≡</span><h4 data-i18n="demoBookshop">The rainy-day bookshop</h4><p data-i18n="demoAddress">42 Silver Road · A cat by the door.</p><small data-i18n="demoLife">Life</small></div><div class="mini-card ghost-card"><span class="mini-icon mint">⌘</span><h4 data-i18n="demoSpark">A little spark</h4><div class="skeleton-lines"></div><small data-i18n="demoInspiration">Inspiration</small></div><div class="mini-card ghost-card"><span class="mini-icon peach">↗</span><h4>Apple Design</h4><div class="skeleton-lines"></div><small data-i18n="demoLearning">Learning</small></div></div></div>
+                <div class="scene-toast capture-toast"><span>✓</span><span data-i18n="demoSaved">A little memory, saved.</span></div>
+              </div>
+            </section>
+            <section class="tour-slide" role="tabpanel" id="tour-panel-1" aria-labelledby="tour-tab-1" aria-hidden="true" inert>
+              <div class="tour-copy"><span class="tour-index">02 <span>/ 06</span></span><h3 data-i18n="pasteTitle">Back in your flow.<br>In a double-click.</h3><p data-i18n="pasteDescription">Bring up the shelf, find your card, and paste it straight into the app you were using. A small detour, a smooth return.</p><span class="tour-key"><kbd>⇧⌘V</kbd><span data-i18n="pasteHint">Open. Choose. Paste.</span></span></div>
+              <div class="tour-stage scene-paste" aria-hidden="true"><div class="scene-orbit"></div>
+                <div class="mini-window paste-destination"><div class="mini-title"><i></i><i></i><i></i><span data-i18n="demoWeekend">A little weekend plan</span></div><div class="mini-body"><h4 data-i18n="demoSaturday">Saturday, let's go here.</h4><div class="paste-result"><span data-i18n="demoAddress">42 Silver Road · A cat by the door.</span><span class="typing-caret"></span></div><div class="skeleton-lines"></div></div></div>
+                <div class="mini-shelf paste-shelf"><div class="mini-shelf-title"><img src="assets/clipori-icon.png" width="20" height="20" alt="">Clipori <span data-i18n="demoMemories">All memories</span></div><div class="mini-cards"><div class="mini-card paste-choice"><span class="mini-icon">≡</span><h4 data-i18n="demoBookshop">The rainy-day bookshop</h4><p data-i18n="demoAddress">42 Silver Road · A cat by the door.</p><small data-i18n="demoLife">Life</small></div><div class="mini-card"><span class="mini-icon mint">⌘</span><h4 data-i18n="demoSpark">A little spark</h4><div class="skeleton-lines"></div><small data-i18n="demoInspiration">Inspiration</small></div></div></div>
+                <span class="demo-cursor paste-cursor"><svg width="27" height="33" viewBox="0 0 27 33"><path d="M3 2v24l6-6 5 11 5-2-5-10h9Z" fill="#302b3b" stroke="white" stroke-width="2"/></svg></span><div class="scene-toast paste-toast"><span>✓</span><span data-i18n="demoPasted">Right where you left off.</span></div>
+              </div>
+            </section>
+            <section class="tour-slide" role="tabpanel" id="tour-panel-2" aria-labelledby="tour-tab-2" aria-hidden="true" inert>
+              <div class="tour-copy"><span class="tour-index">03 <span>/ 06</span></span><h3 data-i18n="organizeTitle">A few little cards.<br>A place of their own.</h3><p data-i18n="organizeDescription">Select a few memories and drag them together into a category. Work, life, your next big idea — keep things in their place.</p><span class="tour-key"><kbd>⌘</kbd><span data-i18n="organizeHint">Select a few. Move them together.</span></span></div>
+              <div class="tour-stage scene-organize" aria-hidden="true"><div class="scene-orbit"></div><div class="mini-shelf organize-shelf"><div class="mini-shelf-title"><img src="assets/clipori-icon.png" width="20" height="20" alt="">Clipori <span>⌘ + click</span></div><div class="mini-categories"><span data-i18n="demoMemories">All memories</span><span class="drop-category"><i></i><span data-i18n="demoInspiration">Inspiration</span><b class="drop-count">+2</b></span><span data-i18n="demoLife">Life</span></div><div class="mini-cards"><div class="mini-card multi-selected"><span class="mini-icon">≡</span><h4 data-i18n="demoSpark">A little spark</h4><p data-i18n="demoIdea">Make something small. Make it yours.</p><small class="assigned-category" data-i18n="demoInspiration">Inspiration</small></div><div class="mini-card multi-selected second-choice"><span class="mini-icon peach">↗</span><h4 data-i18n="demoDesign">A softer interface</h4><div class="skeleton-lines"></div><small class="assigned-category" data-i18n="demoInspiration">Inspiration</small></div><div class="mini-card"><span class="mini-icon mint">≡</span><h4 data-i18n="demoBookshop">The rainy-day bookshop</h4><div class="skeleton-lines"></div></div></div></div><div class="drag-bundle"><div class="drag-card"><span data-i18n="demoSpark">A little spark</span><div class="skeleton-lines"></div></div><b>2</b><svg width="23" height="28" viewBox="0 0 27 33"><path d="M3 2v24l6-6 5 11 5-2-5-10h9Z" fill="#302b3b" stroke="white" stroke-width="2"/></svg></div><div class="scene-toast organize-toast"><span>✓</span><span data-i18n="demoOrganized">Two memories. One little home.</span></div></div>
+            </section>
+            <section class="tour-slide" role="tabpanel" id="tour-panel-3" aria-labelledby="tour-tab-3" aria-hidden="true" inert>
+              <div class="tour-copy"><span class="tour-index">04 <span>/ 06</span></span><h3 data-i18n="recallTitle">Remember the idea.<br>Not the exact words.</h3><p data-i18n="recallDescription">Ask in your own words. Clipori helps find the relevant memories with the AI service you connect, with the source close at hand.</p><span class="tour-key"><kbd>⌘↩</kbd><span data-i18n="recallHint">Your memories. Your AI.</span></span></div>
+              <div class="tour-stage scene-recall" aria-hidden="true"><div class="scene-orbit"></div><div class="ai-query"><span>✧</span><span class="query-typing" data-i18n="demoQuestion">Where was that bookshop with a cat?</span><span class="ai-enter">↵</span></div><div class="ai-thinking"><i></i><i></i><i></i></div><div class="ai-response"><span class="ai-response-star">✦</span><div><small data-i18n="demoFound">Found in your memories</small><p data-i18n="demoAnswer">42 Silver Road. Open Saturday, 10:00–20:00. And yes, a cat by the door.</p><span class="ai-citation" data-i18n="demoBookshop">The rainy-day bookshop</span></div></div><div class="mini-card ai-source"><span class="mini-icon">≡</span><h4 data-i18n="demoBookshop">The rainy-day bookshop</h4><p data-i18n="demoAddress">42 Silver Road · A cat by the door.</p><small data-i18n="demoLife">Life</small></div></div>
+            </section>
+            <section class="tour-slide" role="tabpanel" id="tour-panel-4" aria-labelledby="tour-tab-4" aria-hidden="true" inert>
+              <div class="tour-copy"><span class="tour-index">05 <span>/ 06</span></span><h3 data-i18n="classifyTitle">Let new memories<br>find their own place.</h3><p data-i18n="classifyDescription">Turn on AI auto-classification, and new copies can go straight into your categories. Set up the categories you like; your AI helps with the sorting.</p><span class="tour-key"><span>✧</span><span data-i18n="classifyHint">Optional · Uses your configured AI service</span></span></div>
+              <div class="tour-stage scene-classify" aria-hidden="true"><div class="scene-orbit"></div><div class="classify-setting"><span>✧</span><span data-i18n="demoAutoClassify">AI auto-classification</span><span class="mini-toggle"></span></div><div class="mini-card classify-memory"><span class="mini-icon mint">&lt;/&gt;</span><h4 data-i18n="demoCodeTitle">A softer spring</h4><pre>withAnimation(.spring(
+  response: 0.28,
+  dampingFraction: 0.64
+)) { shelf.show() }</pre><div class="classify-labels"><small class="classify-pending" data-i18n="demoClassifying">Finding a category…</small><small class="classify-done" data-i18n="demoCodeCategory">Code</small></div></div><div class="classify-ai">✦<span class="classify-ring"></span></div><div class="classify-destinations"><span data-i18n="demoLife">Life</span><span class="classify-target"><i></i><span data-i18n="demoCodeCategory">Code</span><b>✓</b></span><span data-i18n="demoInspiration">Inspiration</span></div><div class="scene-toast classify-toast"><span>✓</span><span data-i18n="demoClassified">Sorted, with a little help from AI.</span></div></div>
+            </section>
+            <section class="tour-slide" role="tabpanel" id="tour-panel-5" aria-labelledby="tour-tab-5" aria-hidden="true" inert>
+              <div class="tour-copy"><span class="tour-index">06 <span>/ 06</span></span><h3 data-i18n="editTitle">Not just a copy.<br>A note you can grow.</h3><p data-i18n="editDescription">Revisit a saved memory, change the wording, or add one more thought. Save it, and pick up the updated version next time.</p><span class="tour-key"><kbd>⌘E</kbd><span data-i18n="editHint">Edit the past. Add something new.</span></span></div>
+              <div class="tour-stage scene-edit" aria-hidden="true"><div class="scene-orbit"></div><div class="mini-window edit-window"><div class="mini-title"><i></i><i></i><i></i><span data-i18n="demoEditMemory">Edit memory</span></div><div class="mini-body"><small data-i18n="demoTitleLabel">Title</small><h4 class="edit-title" data-i18n="demoBookshop">The rainy-day bookshop</h4><small data-i18n="demoContentLabel">Content</small><div class="edit-textarea"><p data-i18n="demoAddress">42 Silver Road · A cat by the door.</p><p data-i18n="demoTime">Saturday, 10:00–20:00</p><p class="edit-added"><span data-i18n="demoExtraNote">Bring a camera. Leave room to wander.</span><span class="typing-caret"></span></p></div><div class="edit-actions"><span data-i18n="demoLife">Life</span><span class="edit-save" data-i18n="demoSave">Save</span></div></div></div><div class="mini-card edited-memory"><span class="mini-icon">≡</span><h4 data-i18n="demoBookshop">The rainy-day bookshop</h4><p data-i18n="demoExtraNote">Bring a camera. Leave room to wander.</p><small data-i18n="demoUpdated">Updated</small></div><div class="scene-toast edit-toast"><span>✓</span><span data-i18n="demoEditSaved">A memory, with a new thought.</span></div></div>
+            </section>
+          </div>
+        </div>
+        <div class="tour-bottom"><p data-i18n="tourCaption">Illustrated demos · Sample data · Swipe to explore</p><div class="tour-controls"><button type="button" id="tour-motion" data-i18n="pauseMotion">Pause animation</button><span id="tour-position" aria-live="polite" aria-atomic="true">01 / 06</span><button class="tour-arrow" type="button" id="tour-prev" aria-label="Previous feature" data-i18n-aria="previousFeature">←</button><button class="tour-arrow" type="button" id="tour-next" aria-label="Next feature" data-i18n-aria="nextFeature">→</button></div></div>
+      </div>
+      <div class="privacy-note"><svg width="20" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m12 2 8 3v6c0 5-4 9-8 11-4-2-8-6-8-11V5zM8 12l3 3 5-6"/></svg><p><strong data-i18n="privacyTitle">Local first. Always yours.</strong> <span data-i18n="privacyDescription">History stays on your Mac. API keys stay in Keychain. AI sends your question and relevant text to the service you choose.</span></p></div>
+    </section>
+
+    <section class="install-section" id="install" aria-labelledby="install-title">
+      <div class="wrap install-layout">
+        <div class="install-intro"><p class="eyebrow" data-i18n="installEyebrow">A NEW HOME FOR YOUR CLIPBOARD</p><h2 id="install-title" data-i18n="installTitle">Meet your next<br>favorite shortcut.</h2><p data-i18n="installDescription">A few small steps, and you're ready.<br>No Xcode. No account to create.</p><a class="text-link" href="https://github.com/Panzer-Jack/Clipori/releases/latest"><span data-i18n="viewReleases">Get the latest release</span><span aria-hidden="true">↗</span></a><img class="install-cat" src="assets/clipori-icon.png" alt="" width="110" height="110" loading="lazy"></div>
+        <ol class="install-steps">
+          <li><span class="step-number">1</span><div class="step-body"><h3 data-i18n="stepOneTitle">Download & move to Applications</h3><p><a href="https://github.com/Panzer-Jack/Clipori/releases/latest" data-i18n="releaseLink">Open GitHub Releases</a><span data-i18n="stepOneDescription">. Choose arm64 for M-series Macs or x86_64 for Intel. Open the DMG or unzip, then drag Clipori.app into Applications.</span></p><div class="architecture-pills"><span>Apple Silicon <code>arm64</code></span><span>Intel <code>x86_64</code></span></div></div></li>
+          <li><span class="step-number">2</span><div class="step-body"><h3 data-i18n="stepTwoTitle">Before the first launch</h3><p data-i18n="stepTwoDescription">Current releases are not notarized by Apple. After downloading from this project's Releases, run this in Terminal to remove the app's quarantine flag:</p><div class="command-box"><code id="install-command">xattr -dr com.apple.quarantine /Applications/Clipori.app</code><button id="copy-command" type="button" aria-label="Copy installation command" data-i18n-aria="copyCommand"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="8" y="3" width="12" height="14" rx="2"/><path d="M15 21H6a2 2 0 0 1-2-2V8"/></svg><span id="copy-label" data-i18n="copy">Copy</span></button></div><p class="copy-feedback" id="copy-feedback" role="status" aria-live="polite"></p></div></li>
+          <li><span class="step-number">3</span><div class="step-body"><h3 data-i18n="stepThreeTitle">Open Clipori. Copy something.</h3><p><span data-i18n="stepThreeDescription">Clipori lives in your menu bar. Press </span><kbd>⇧⌘V</kbd><span data-i18n="stepThreeEnd"> to open the shelf. Copied text and images appear automatically.</span></p><div class="setup-details"><details><summary data-i18n="pasteSetup">Enable double-click to paste</summary><p data-i18n="pasteSetupDescription">Go to System Settings → Privacy & Security → Accessibility and enable Clipori. Without this permission, click a card to copy and press ⌘V in the destination app.</p></details><details><summary data-i18n="aiSetup">Connect your own AI</summary><p data-i18n="aiSetupDescription">In Clipori Settings → AI, select OpenAI or Claude format, enter your base URL, model and API key, then test and save. History and keyword search work without AI. Automatic classification is optional.</p></details></div></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="faq wrap" aria-labelledby="faq-title"><div class="section-heading"><p class="eyebrow" data-i18n="faqEyebrow">A FEW LITTLE DETAILS</p><h2 id="faq-title" data-i18n="faqTitle">Good to know.</h2></div><div class="faq-list">
+      <details><summary data-i18n="faqFreeTitle">Is Clipori free?</summary><p data-i18n="faqFreeDescription">The current version is free and open source under Apache 2.0. AI uses the service you configure, which may charge separately.</p></details>
+      <details><summary data-i18n="faqHistoryTitle">How long is my history kept?</summary><p data-i18n="faqHistoryDescription">New installs keep 30 days by default. Choose 1 day, 1 week, 1 month, 1 year, or forever. Pinned entries and Pinboards are kept until you remove them.</p></details>
+      <details><summary data-i18n="faqPhoneTitle">Does it sync with my iPhone?</summary><p data-i18n="faqPhoneDescription">This release is for Mac. An iPhone companion and iCloud sync are in development; cross-device sync is not ready for everyday use yet.</p></details>
+      <details><summary data-i18n="faqScreenshotTitle">Can I save screenshots too?</summary><p data-i18n="faqScreenshotDescription">Yes. Use ⌃⇧⌘4 to copy a screenshot selection to your clipboard. Clipori captures it automatically; press Space to preview. Screenshots saved only as files are not captured.</p></details>
+    </div></section>
+
+    <section class="closing wrap"><img src="assets/clipori-icon.png" alt="" width="64" height="64" loading="lazy"><h2 data-i18n="closingTitle">Make room for your next idea.</h2><p data-i18n="closingDescription">Let Clipori hold onto the little things.</p><a class="button button-primary" href="https://github.com/Panzer-Jack/Clipori/releases/latest"><span data-i18n="download">Download for Mac</span><span aria-hidden="true">↗</span></a></section>
+  </main>
+  <footer class="site-footer wrap"><span>© <span id="year">2026</span> Clipori <span class="footer-note" data-i18n="footerNote">· Made with a little curiosity.</span></span><div><a href="https://github.com/Panzer-Jack/Clipori">GitHub ↗</a><a href="https://github.com/Panzer-Jack/Clipori/issues" data-i18n="feedback">Feedback</a><a href="https://github.com/Panzer-Jack/Clipori/blob/main/LICENSE">Apache 2.0</a></div></footer>
+</body>
+</html>
