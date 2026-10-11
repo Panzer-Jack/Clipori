@@ -62,7 +62,7 @@ const chinese = {
     pasteSetup: '开启双击直接粘贴', pasteSetupDescription: '前往「系统设置 → 隐私与安全性 → 辅助功能」，开启 Clipori 权限。未授权时，仍可单击卡片复制，再切回目标应用按 ⌘V 粘贴。',
     aiSetup: '接入你自己的 AI', aiSetupDescription: '在「Clipori 设置 → AI」选择 OpenAI 或 Claude 格式，填写接口地址、模型和 API Key，测试并保存。未配置 AI 也能使用历史记录和关键词搜索；自动分类可按需开启。',
     faqEyebrow: '还有几件小事', faqTitle: '你可能也想知道。', faqFreeTitle: 'Clipori 免费吗？',
-    faqFreeDescription: '当前版本免费使用，以 Apache 2.0 协议开源。AI 使用你配置的服务，该服务可能单独收取费用。',
+    faqFreeDescription: '目前软件开源且免费，以 Apache 2.0 协议开源。',
     faqHistoryTitle: '历史记录能保留多久？', faqHistoryDescription: '新安装默认保留 30 天。可自行选择 1 天、1 周、1 个月、1 年或永久。固定记录和固定分类（Pinboard）中的内容不会自动清理。',
     faqPhoneTitle: '可以与 iPhone 互通吗？', faqPhoneDescription: '当前发布的是 Mac 版。iPhone 客户端与 iCloud 同步正在开发，跨设备同步还未开放日常使用。',
     faqScreenshotTitle: '截图也可以收录吗？', faqScreenshotDescription: '可以。按 ⌃⇧⌘4 将选区截图复制到剪贴板，Clipori 会自动收录，选中后按空格预览。只保存为文件的截图不会自动收录。',
