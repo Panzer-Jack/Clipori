@@ -13,7 +13,7 @@
 </p>
 <p align="center">
   <strong>English</strong> · <a href="README.zh-CN.md">简体中文</a><br><br>
-  <a href="https://panzer-jack.github.io/Clipori/?lang=en">Website</a> ·
+  <a href="https://clipori.panzer-jack.cn/">Website</a> ·
   <a href="https://github.com/Panzer-Jack/Clipori/releases"><strong>Download for Mac</strong></a> ·
   <a href="#get-started">Get started</a> ·
   <a href="docs/USAGE.md">Shortcuts &amp; controls</a> ·

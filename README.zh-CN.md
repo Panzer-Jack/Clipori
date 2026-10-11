@@ -13,7 +13,7 @@
 </p>
 <p align="center">
   <a href="README.md">English</a> · <strong>简体中文</strong><br><br>
-  <a href="https://panzer-jack.github.io/Clipori/?lang=zh">官网</a> ·
+  <a href="https://clipori.panzer-jack.cn/">官网</a> ·
   <a href="https://github.com/Panzer-Jack/Clipori/releases"><strong>下载 Mac 版</strong></a> ·
   <a href="#开始使用">开始使用</a> ·
   <a href="docs/USAGE.zh-CN.md">快捷键与操作</a> ·
