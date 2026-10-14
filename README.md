@@ -22,11 +22,13 @@
 
 ## Demo
 
-Browse copied content in a bottom card shelf. Search, edit, and organize your history.
+Capture, organize, and rediscover copied content, then write daily notes or draft them with AI. Pin unfinished work for tomorrow and revisit earlier days.
 
 <p align="center">
-  <img src="docs/assets/clipori-demo.gif" alt="Clipori walkthrough: open the shelf, hover across cards to see them lift and settle, click to copy, drag cards into a category, and search with AI" width="1200">
+  <img src="docs/assets/clipori-demo.gif" alt="Clipori walkthrough: open the shelf, hover across cards to see them lift and settle, click to copy, drag cards into a category, search with AI, draft daily notes, pin ongoing work, and revisit previous days" width="1200">
 </p>
+
+*Illustrated walkthrough with fictional data, scripted AI replies, and compressed date transitions.*
 
 ## Features
 
@@ -34,6 +36,7 @@ Browse copied content in a bottom card shelf. Search, edit, and organize your hi
 - Open with `⇧⌘V`, click to copy, and double-click to paste.
 - Drag multiple cards into a category and pin entries.
 - Edit records, append notes, or create desktop sticky notes.
+- Write daily notes by hand or draft them with AI from that day's clipboard, review cited sources, carry pinned work forward, and revisit previous dates.
 - Search and classify with AI using your own OpenAI or Claude compatible service.
 - Customize shortcuts, language, retention, and excluded apps.
 
@@ -66,6 +69,7 @@ Browse copied content in a bottom card shelf. Search, edit, and organize your hi
 | Drag selected cards to a category | Categorize the whole group |
 | Space / `⌘E` | Preview / edit and append |
 | `⌘↩` | Search with AI after entering a question |
+| Daily notes in the shelf / menu bar | Write, draft with AI, pin ongoing work, and choose previous dates |
 
 Every app shortcut is customizable in Settings → Shortcuts. [See all controls →](docs/USAGE.md)
 
@@ -73,9 +77,11 @@ Every app shortcut is customizable in Settings → Shortcuts. [See all controls 
 
 - History is stored locally in SQLite; API keys stay in the Keychain. You can pause capture or exclude apps. Standard clipboard privacy markers are respected.
 - AI search sends your question and candidate excerpts to your configured service. Automatic classification sends the entry being categorized and is off by default. Image pixels are not sent.
+- **AI draft** in daily notes sends excerpts for the selected date and existing items to your service. Review sources, edit, and select suggestions before adding them. There is no automatic daily upload in the background.
 - New installations keep history for 30 days. Choose 1 day, 1 week, 1 month, 1 year, or forever. Pinned entries and Pinboards are kept indefinitely. Upgrades preserve your settings; shortening retention requires confirmation.
 - The interface uses Chinese when it is the system's preferred language, English otherwise. You can also choose a language in Settings.
 - Card icons automatically indicate content type; their colors follow the category.
+- Daily notes are stored locally in a separate `daily-notes.sqlite` file, kept indefinitely and excluded from clipboard cleanup. They do not sync through iCloud yet.
 
 <details>
 <summary>Storage and image details</summary>
@@ -91,8 +97,8 @@ PNG, TIFF, and JPEG images are supported. Use `⌃⇧⌘4` to copy a screenshot 
 | Available now on Mac | Next steps |
 | --- | --- |
 | Clipboard history, screenshots, editing, categories, multi-select drag, desktop notes | iPhone image support and image sync |
-| AI recall and optional automatic classification | iCloud signing and testing between physical devices |
-| Custom shortcuts, Chinese/English, configurable retention | Developer ID signing, notarization, and in-app updates |
+| Daily notes, AI drafts, pinned carry-over, and previous dates | iCloud signing and testing between physical devices |
+| AI recall, optional classification, custom shortcuts, Chinese/English, retention | Developer ID signing, notarization, and in-app updates |
 
 The repository also contains a **local iPhone companion** and shared iCloud components. Cross-device sync is not yet ready for daily use; both apps use local storage by default. There is no public iPhone installer yet. Multi-selection currently supports categorizing, not batch pasting.
 

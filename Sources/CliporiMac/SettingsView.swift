@@ -124,6 +124,10 @@ struct SettingsView: View {
             Toggle(L("AI 自动分类"), isOn: $draft.ai.autoClassify)
             Text(L("开启后，会向你配置的服务发送待分类的记录内容。AI 搜索只发送问题和候选片段；API Key 不随记录同步。"))
                 .font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(4)
+            Text(L("每日备忘录可通过 AI 整理当天剪贴板，生成可编辑的事项建议，选择后加入。"))
+                .font(.system(size: 12)).foregroundStyle(.secondary)
+            Text(L("文字片段与已有事项会发送至你在设置中配置的 AI 服务，图片不会发送。"))
+                .font(.system(size: 11)).foregroundStyle(.secondary)
             Button(L("重试待分类记录")) { app.startClassification(); feedback = L("已安排后台分类。") }.disabled(!app.preferences.ai.autoClassify)
         }
     }
@@ -196,6 +200,8 @@ struct SettingsView: View {
             Divider()
             HStack { Text(L("本地记录")); Spacer(); Text(LF("%d 条", app.totalCount)).foregroundStyle(.secondary) }
             Button(L("在 Finder 中查看数据文件")) { NSWorkspace.shared.open(app.dataDirectory) }
+            Text(L("每日备忘录仅保存在本机，长期保留，不参与 iCloud 同步、过期清理或下方的清空操作。"))
+                .font(.system(size: 11)).foregroundStyle(.secondary)
             Divider()
             VStack(alignment: .leading, spacing: 8) {
                 Button(app.isClearingHistory ? L("正在清空…") : L("清空所有记录…"), role: .destructive) {
@@ -225,7 +231,8 @@ struct SettingsView: View {
                 }.accessibilityIdentifier("confirm-clear-history")
             } message: {
                 Text(L("所有文字、图片、手动备忘、固定记录及固定分类中的记录都会删除，已打开的备忘窗口会关闭。分类、快捷键和 AI 配置保留。此操作无法撤销。")
-                     + "\n\n" + L("使用 iCloud 同步时，其他设备上的对应记录也会删除。"))
+                     + "\n\n" + L("使用 iCloud 同步时，其他设备上的对应记录也会删除。")
+                     + "\n\n" + L("每日备忘录会保留。"))
             }
         }
         .task {

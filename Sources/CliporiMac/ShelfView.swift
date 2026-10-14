@@ -89,6 +89,9 @@ struct ShelfView: View {
                 }.foregroundStyle(Color.clipori)
             }.buttonStyle(QuietButton(selected: true)).help(model.preferences.shortcuts[.aiSearch].display).accessibilityIdentifier("ai-search")
             Rectangle().fill(Color.primary.opacity(0.08)).frame(width: 1, height: 22).padding(.horizontal, 3)
+            Button { model.onDailyNotes?(nil) } label: {
+                Label(L("每日备忘录"), systemImage: "checklist").font(.system(size: 12))
+            }.buttonStyle(QuietButton()).help(L("每日备忘录")).accessibilityIdentifier("daily-notes")
             Button { model.onEdit?(nil) } label: { Image(systemName: "plus").font(.system(size: 14, weight: .medium)) }.buttonStyle(QuietButton()).help(model.preferences.shortcuts[.newMemory].display).accessibilityIdentifier("new-memory")
             Button { model.onSettings?() } label: { Image(systemName: "slider.horizontal.3").font(.system(size: 14)) }.buttonStyle(QuietButton()).help(model.preferences.shortcuts[.settings].display).accessibilityIdentifier("settings")
         }
@@ -201,6 +204,7 @@ struct ShelfView: View {
         Button(L("预览")) { model.onPreview?(record) }
         Button(L("编辑 / 追加内容")) { model.onEdit?(record) }
         Button(L("显示为桌面便笺")) { model.onSticky?(record) }
+        Button(L("添加到每日备忘录")) { model.onDailyNotes?(record) }
         Divider()
         Menu(model.selectionIDs.contains(record.id) && model.selectionIDs.count > 1 ? LF("将 %d 条记忆移到分类", model.selectionIDs.count) : L("移动到分类")) {
             Button(L("未分类")) { model.assign(record, to: nil) }

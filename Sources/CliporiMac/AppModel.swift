@@ -52,6 +52,7 @@ final class AppModel: ObservableObject {
     var onSettings: (() -> Void)?
     var onDismiss: (() -> Void)?
     var onSticky: ((Memory) -> Void)?
+    var onDailyNotes: ((Memory?) -> Void)?
     var onPrepareHistoryClear: (() async -> Bool)?
     var onHistoryCleared: (() -> Void)?
     private var searchTask: Task<Void, Never>?

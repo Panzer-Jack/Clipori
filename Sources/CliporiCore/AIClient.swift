@@ -27,7 +27,7 @@ public struct AIClient: Sendable {
         self.configuration = configuration; self.apiKey = apiKey; self.session = session ?? Self.defaultSession
     }
 
-    public func makeRequest(system: String, user: String) throws -> URLRequest {
+    public func makeRequest(system: String, user: String, maxOutputTokens: Int? = nil) throws -> URLRequest {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIError.configuration(L("请先在设置中填写 API Key。")) }
         guard !configuration.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIError.configuration(L("请先填写模型名称。")) }
         guard var components = URLComponents(string: configuration.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
@@ -56,12 +56,13 @@ public struct AIClient: Sendable {
             payload["system"] = system; payload["max_tokens"] = 2048
             payload["messages"] = [["role": "user", "content": user]]
         }
+        if let maxOutputTokens { payload["max_tokens"] = maxOutputTokens }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         return request
     }
 
-    public func complete(system: String, user: String) async throws -> String {
-        let request = try makeRequest(system: system, user: user)
+    public func complete(system: String, user: String, maxOutputTokens: Int? = nil) async throws -> String {
+        let request = try makeRequest(system: system, user: user, maxOutputTokens: maxOutputTokens)
         let (data, response) = try await session.data(for: request)
         try Task.checkCancellation()
         guard let http = response as? HTTPURLResponse else { throw AIError.invalidResponse }

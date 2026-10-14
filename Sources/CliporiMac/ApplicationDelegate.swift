@@ -12,6 +12,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var settingsWindow: NSWindow?
     private var previewWindow: NSWindow?
+    private var dailyNotes: DailyNotesController?
     private var applicationKeys: Any?
     private var editors: [UUID: EditorWindowDelegate] = [:]
 
@@ -28,6 +29,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         model.onSettings = { [weak self] in self?.showSettings() }
         model.onEdit = { [weak self] record in self?.showEditor(record: record) }
         model.onSticky = { [weak self] record in self?.showEditor(record: record, sticky: true) }
+        model.onDailyNotes = { [weak self] record in self?.showDailyNotes(adding: record) }
         model.onPrepareHistoryClear = { [weak self] in
             guard let self else { return true }
             for editor in Array(self.editors.values) {
@@ -51,6 +53,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         model.onPreferencesChanged = { [weak self] in
             self?.installMainMenu(); self?.settingsWindow?.title = L("Clipori 设置")
             self?.shelf.panel.title = L("Clipori 记忆栏")
+            self?.dailyNotes?.window.title = L("每日备忘录")
             for editor in self?.editors.values ?? [:].values { editor.window.title = L("Clipori 备忘") }
         }
         model.onShortcutRecording = { [weak self] recording in
@@ -64,7 +67,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             let action = self.model.preferences.shortcuts.action(code: event.keyCode, modifiers: KeyChord.modifiers(event.modifierFlags))
             if action == .activate { self.shelf.toggle(); return nil }
             if action == .quit { NSApp.terminate(nil); return nil }
-            if action == .save, self.editors.values.contains(where: { $0.window === NSApp.keyWindow }) { self.saveActiveNote(); return nil }
+            if action == .save, self.editors.values.contains(where: { $0.window === NSApp.keyWindow }) || self.dailyNotes.map({ $0.window === NSApp.keyWindow }) == true { self.saveActiveNote(); return nil }
             return event
         }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -90,10 +93,13 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         let pending = Array(editors.values)
-        if pending.isEmpty { return .terminateNow }
+        if pending.isEmpty && dailyNotes == nil { return .terminateNow }
         Task {
             for editor in pending {
                 if !(await editor.editor.flush()) { editor.window.makeKeyAndOrderFront(nil); NSApp.reply(toApplicationShouldTerminate: false); return }
+            }
+            if let dailyNotes, !(await dailyNotes.flush()) {
+                dailyNotes.show(); NSApp.reply(toApplicationShouldTerminate: false); return
             }
             NSApp.reply(toApplicationShouldTerminate: true)
         }
@@ -103,6 +109,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         if NSApp.currentEvent?.type == .rightMouseUp {
             let menu = NSMenu()
             menu.addItem(withTitle: LF("打开 Clipori  %@", model.preferences.shortcuts[.activate].display), action: #selector(toggleShelf), keyEquivalent: "")
+            menu.addItem(withTitle: L("每日备忘录"), action: #selector(openDailyNotes), keyEquivalent: "")
             menu.addItem(withTitle: model.preferences.capturePaused ? L("继续记录") : L("暂停记录"), action: #selector(toggleCapture), keyEquivalent: "")
             let settings = menu.addItem(withTitle: L("设置…"), action: #selector(openSettings), keyEquivalent: "")
             model.preferences.shortcuts[.settings].apply(to: settings)
@@ -119,9 +126,18 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         Task { do { try await model.updatePreferences(prefs) } catch { model.errorMessage = error.localizedDescription } }
     }
     @objc private func openSettings() { showSettings() }
+    @objc private func openDailyNotes() { showDailyNotes() }
     @objc private func quit() { NSApp.terminate(nil) }
     @objc private func saveActiveNote() {
+        if let dailyNotes, dailyNotes.window === NSApp.keyWindow { Task { await dailyNotes.flush() }; return }
         if let active = editors.values.first(where: { $0.window === NSApp.keyWindow }) { Task { await active.editor.flush() } }
+    }
+    private func showDailyNotes(adding memory: Memory? = nil) {
+        do {
+            if dailyNotes == nil { dailyNotes = try DailyNotesController(app: model) }
+            shelf.hide(restoreFocus: false)
+            dailyNotes?.show(adding: memory)
+        } catch { model.errorMessage = error.localizedDescription }
     }
     private func showSettings() {
         shelf.hide(restoreFocus: false)
@@ -179,6 +195,9 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     private func installMainMenu() {
         let main = NSMenu()
         let appItem = NSMenuItem(); let appMenu = NSMenu()
+        let dailyItem = appMenu.addItem(withTitle: L("每日备忘录"), action: #selector(openDailyNotes), keyEquivalent: "")
+        dailyItem.target = self
+        appMenu.addItem(.separator())
         let quitItem = appMenu.addItem(withTitle: L("退出 Clipori"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "")
         model.preferences.shortcuts[.quit].apply(to: quitItem)
         appItem.submenu = appMenu; main.addItem(appItem)

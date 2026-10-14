@@ -8,7 +8,7 @@ struct DatabaseError: LocalizedError {
 
 enum SQLValue { case text(String), number(Double), blob(Data), null }
 
-/// Confined to MemoryStore's actor; never called directly from the UI.
+/// Confined to its owning store actor; never called directly from the UI.
 final class SQLiteConnection: @unchecked Sendable {
     private var handle: OpaquePointer?
     init(path: String) throws {
