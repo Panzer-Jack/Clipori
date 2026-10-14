@@ -128,6 +128,7 @@ final class DailyNoteAITests: XCTestCase {
             let result = try await AIClient(configuration: config, apiKey: "test-only", session: URLSession(configuration: sessionConfig))
                 .suggestDailyNotes(context: context, existing: existing)
             XCTAssertEqual(result.count, 1)
+            XCTAssertEqual(DailyAIProtocol.timeout, AIClient.dailyNoteTimeout)
             let body = try XCTUnwrap(DailyAIProtocol.payload)
             XCTAssertEqual(body["max_tokens"] as? Int, format == .claude ? 4096 : nil)
             let messages = try XCTUnwrap(body["messages"] as? [[String: String]])
@@ -153,10 +154,12 @@ final class DailyNoteAITests: XCTestCase {
 
 private final class DailyAIProtocol: URLProtocol {
     static var response = Data()
+    static var timeout: TimeInterval?
     static var payload: [String: Any]?
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
+        Self.timeout = request.timeoutInterval
         var bytes = request.httpBody ?? Data()
         if let stream = request.httpBodyStream {
             stream.open(); defer { stream.close() }

@@ -40,7 +40,7 @@ const chinese = {
     heroNote: '少一点记挂，\n多一点灵感。', demoTitle: '让剪贴板，也有一点灵动。', oneShortcut: '一个快捷键，就在手边',
     demoWindow: '和 Clipori 相处的片刻', videoLabel: 'Clipori 产品功能示意动画',
     demoCaption: '产品示意动画 · 示例内容与预设 AI 回复', play: '播放演示', pause: '暂停演示',
-    demoHint: '复制、找回，然后继续创造。', gifFallback: '查看 GIF 演示',
+    demoHint: '复制、找回，整理每日备忘，接着推进。', gifFallback: '查看 GIF 演示',
     featuresEyebrow: '小小的软件，轻一点的日常', featuresTitle: '少找一会儿，多做一点。',
     featureOneTitle: '复制即记住，随用随取。',
     featureOneDescription: '文字、链接、代码、截图，自动收进底部卡片栏。单击复制，双击粘贴，每个念头都能接着用。',
@@ -94,7 +94,7 @@ const chinese = {
     document.getElementById('gif-link').href = `assets/clipori-demo${next === 'zh' ? '-zh' : ''}.gif`;
     video.autoplay = false;
     video.poster = `assets/clipori-demo-poster-${next}.jpg`;
-    video.width = 1200; video.height = next === 'zh' ? 676 : 720;
+    video.width = 1200; video.height = 800;
     video.src = `assets/clipori-demo-${next}.mp4`;
     video.load();
     syncVideoPlayback();

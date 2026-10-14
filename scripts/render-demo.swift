@@ -6,12 +6,48 @@ import UniformTypeIdentifiers
 // Deliberately has no screen capture, pasteboard, database, Keychain, or network access.
 // Run through make-demo.sh. Optional last argument renders a single time for inspection.
 guard CommandLine.arguments.count >= 3 else {
-    fputs("Usage: render-demo output-directory brand.png [time-in-seconds]\n", stderr)
+    fputs("Usage: render-demo output-directory brand.png [time-in-seconds] [en|zh]\n", stderr)
     exit(1)
 }
 let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
 try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
 guard let brand = NSImage(contentsOfFile: CommandLine.arguments[2]) else { fatalError("Missing brand artwork") }
+let chinese = CommandLine.arguments.dropFirst(3).contains("zh")
+let translations: [String: String] = [
+    "Copy to remember. Search to rediscover.": "复制即备忘，想起时就来找回。",
+    "NATIVE FOR macOS": "为 macOS 原生打造",
+    "ILLUSTRATED WALKTHROUGH  ·  SAMPLE DATA  ·  SCRIPTED AI": "产品示意动画 · 虚构数据 · 预设 AI 回复",
+    "01 / A MOMENT AWAY": "01 / 随时唤起", "02 / ONE CLICK TO COPY": "02 / 单击复制",
+    "03 / ORGANIZE IN MOTION": "03 / 多选归类", "04 / AI RECALL": "04 / AI 找回",
+    "Your memories. One shortcut.": "一个快捷键，记忆就在手边。",
+    "Click once. Keep just this.": "轻轻一点，复制这一条。",
+    "Gather a few. Drop them home.": "选中几条，拖进同一个分类。",
+    "Remember it in your own words.": "记得大概，就可以问问 AI。",
+    "A floating shelf for the little things worth keeping.": "用底部卡片栏，留住值得记下的小事。",
+    "Each click replaces the clipboard with the selected card.": "单击卡片，用选中内容替换剪贴板。",
+    "Command-click to select. Drag the whole group to a category.": "按住 Command 多选，再将整组拖入分类。",
+    "Ask a question. Find the memory behind the answer.": "用自己的话提问，找回有原文依据的记忆。",
+    "Keep every little spark": "留住每一闪灵感",
+    "Search memories, or ask AI…": "搜索备忘，或问问 AI…",
+    "When was the sunset walk?": "看日落的散步约在什么时候？",
+    "✦  AI search": "✦  AI 找回", "AI search results": "AI 找回结果", "5 memories": "5 条备忘",
+    "Saturday at 18:20 — a sunset walk along the riverside path.": "周六 18:20，沿河边小路散步看日落。",
+    "From your note: “Saturday, outside”": "来自备忘：「周六，去走走」",
+    "Click a card to copy": "单击卡片即可复制", "Copied · Clipboard replaced": "已复制 · 剪贴板已替换",
+    "2 memories moved to Inspiration": "已将 2 条备忘移入灵感", "Command-click to select more": "按住 Command 点击多选",
+    "2 selected · Drag to a category": "已选 2 条 · 拖入分类", "Demo space · Sample memories": "演示空间 · 虚构备忘",
+    "← →  Select     ↩  Paste     ⌘E  Edit     Esc  Hide": "← → 选择    ↩ 粘贴    ⌘E 编辑    Esc 收起",
+    "Notes": "备忘录", "Screenshot": "截图", "All memories": "全部记忆", "Work": "工作",
+    "Learning": "学习", "Life": "生活", "Code": "代码", "Inspiration": "灵感",
+    "A little spark": "一点小灵感", "Saturday, outside": "周六，去走走",
+    "Spring, a little softer": "再柔和一点的回弹", "+ Spring, a little softer": "+ 再柔和一点的回弹",
+    "A calmer interface": "更安静的界面", "Evening palette": "傍晚的色彩",
+    "Small ideas deserve\na place to stay.\n\nCopy now. Come back\nwhen inspiration calls.": "小小的念头，\n也值得有个地方安放。\n\n先复制下来，\n等灵感来时再找回。",
+    "Sunset walk · 18:20\nRiverside path\n\nBring a camera.\nLeave room to wander.": "日落散步 · 18:20\n沿着河边小路\n\n记得带上相机，\n给闲逛留一点时间。",
+    "developer.apple.com\n/design\n\nNatural feedback.\nThoughtful details.": "developer.apple.com\n/design\n\n自然的反馈，\n细致的设计。"
+]
+func localized(_ value: String) -> String { chinese ? translations[value] ?? value : value }
+
 let width = 1200, height = 720, fps = 50, duration = 20.0
 let white = NSColor(calibratedWhite: 0.97, alpha: 1)
 func color(_ hex: Int, _ alpha: Double = 1) -> NSColor {
@@ -32,7 +68,7 @@ func text(_ value: String, _ x: Double, _ y: Double, _ size: Double, _ ink: NSCo
     let paragraph = NSMutableParagraphStyle(); paragraph.lineSpacing = size * 0.30
     paragraph.lineBreakMode = .byTruncatingTail
     let font = mono ? NSFont.monospacedSystemFont(ofSize: size, weight: weight) : NSFont.systemFont(ofSize: size, weight: weight)
-    (value as NSString).draw(in: NSRect(x: x, y: y, width: width, height: height), withAttributes: [
+    (localized(value) as NSString).draw(in: NSRect(x: x, y: y, width: width, height: height), withAttributes: [
         .font: font, .foregroundColor: ink, .paragraphStyle: paragraph
     ])
 }
@@ -252,10 +288,10 @@ func draw(_ t: Double) {
     text("Keep every little spark", 96, sy + 41, 8, muted)
     box(640, sy + 20, 300, 32, 9, color(0xFFFFFF, 0.055), stroke: color(0xFFFFFF, 0.12), line: 0.6)
     searchIcon(652, sy + 29)
-    let question = "When was the sunset walk?"
+    let question = localized("When was the sunset walk?")
     let typed = stage == 3 ? String(question.prefix(Int(Double(question.count) * clamp((t - 13.4) / 1.3)))) : ""
     text(typed.isEmpty ? "Search memories, or ask AI…" : typed, 675, sy + 28, 11, typed.isEmpty ? muted : white, width: 249)
-    if stage == 3 && t < 14.9 { text("│", 675 + Double(typed.count) * 5.85, sy + 26, 14, purple) }
+    if stage == 3 && t < 14.9 { text("│", 675 + (typed as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 11)]).width, sy + 26, 14, purple) }
     box(952, sy + 20, 91, 32, 9, purple.withAlphaComponent(t > 14.9 && t < 15.45 ? 0.30 : 0.15))
     text("✦  AI search", 963, sy + 29, 11, purple, weight: .semibold)
     box(1058, sy + 20, 34, 32, 9, color(0xFFFFFF, 0.045)); text("+", 1068, sy + 25, 20, white)
@@ -309,7 +345,7 @@ func draw(_ t: Double) {
     drawFooter(active: stage)
 }
 
-let singleTime = CommandLine.arguments.count > 3 ? Double(CommandLine.arguments[3]) : nil
+let singleTime = CommandLine.arguments.dropFirst(3).compactMap(Double.init).first
 let frameCount = singleTime == nil ? Int(duration * Double(fps)) : 1
 for frame in 0..<frameCount {
     try autoreleasepool {

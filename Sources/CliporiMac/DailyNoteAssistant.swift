@@ -15,6 +15,8 @@ final class DailyNoteAssistant: ObservableObject {
     @Published private(set) var isTruncated = false
     @Published private(set) var message: String?
     @Published private(set) var needsConfiguration = false
+    @Published private(set) var hasFailed = false
+    @Published private(set) var startedAt: Date?
     private let store: MemoryStore
     private let generate: Generate
     private var request: Task<Void, Never>?
@@ -26,7 +28,7 @@ final class DailyNoteAssistant: ObservableObject {
         cancel()
         let token = UUID(); runID = token
         day = note.day; isPresented = true; isGenerating = true
-        suggestions = []; selected = []; message = nil; needsConfiguration = false
+        suggestions = []; selected = []; message = nil; needsConfiguration = false; hasFailed = false; startedAt = Date()
         sourceCount = 0; totalRecords = 0; isTruncated = false
         request = Task { [self] in
             defer { if runID == token { isGenerating = false; request = nil } }
@@ -45,7 +47,14 @@ final class DailyNoteAssistant: ObservableObject {
             } catch is CancellationError {} catch {
                 guard runID == token, !Task.isCancelled else { return }
                 if case AIError.configuration = error { needsConfiguration = true }
-                message = error.localizedDescription
+                hasFailed = true
+                if (error as? URLError)?.code == .timedOut {
+                    message = LF("AI 服务在 %d 秒内未完成整理，可能是记录较多或服务响应较慢。备忘录未改动；可以重试，或在设置中更换模型。", Int(AIClient.dailyNoteTimeout))
+                } else if error as? AIError == .service(504) || error as? AIError == .service(408) {
+                    message = L("AI 服务网关超时。备忘录未改动；请稍后重试，或检查服务端超时设置。")
+                } else {
+                    message = error.localizedDescription
+                }
             }
         }
     }

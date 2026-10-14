@@ -1,5 +1,6 @@
 import SwiftUI
 import CliporiCore
+import CliporiCore
 
 struct DailyNoteAISheet: View {
     @ObservedObject var assistant: DailyNoteAssistant
@@ -36,11 +37,17 @@ struct DailyNoteAISheet: View {
                 VStack(spacing: 14) {
                     ProgressView()
                     Text(L("正在梳理事项、合并重复内容…")).font(.system(size: 13)).foregroundStyle(.secondary)
+                    if let startedAt = assistant.startedAt {
+                        TimelineView(.periodic(from: startedAt, by: 1)) { timeline in
+                            Text(LF("已等待 %d 秒 · 最多等待 %d 秒，可随时停止", max(0, Int(timeline.date.timeIntervalSince(startedAt))), Int(AIClient.dailyNoteTimeout)))
+                                .font(.system(size: 12)).foregroundStyle(.secondary)
+                        }
+                    }
                     Button(L("停止整理")) { assistant.cancel() }
                 }.frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if assistant.suggestions.isEmpty {
                 VStack(spacing: 14) {
-                    Image(systemName: assistant.needsConfiguration ? "slider.horizontal.3" : "text.magnifyingglass")
+                    Image(systemName: assistant.needsConfiguration ? "slider.horizontal.3" : assistant.hasFailed ? "exclamationmark.triangle" : "text.magnifyingglass")
                         .font(.system(size: 30)).foregroundStyle(Color.clipori)
                     Text(assistant.message ?? L("没有发现新的可靠事项，已有内容已保留。"))
                         .font(.system(size: 13)).multilineTextAlignment(.center).foregroundStyle(.secondary)

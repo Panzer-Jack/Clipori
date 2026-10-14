@@ -76,6 +76,9 @@ extension DailyNote {
 }
 
 extension AIClient {
+    /// Daily synthesis can take longer than interactive search or a connection check.
+    public static let dailyNoteTimeout: TimeInterval = 180
+
     public func suggestDailyNotes(context: DailyClipboardContext, existing: DailyNote) async throws -> [DailyNoteSuggestion] {
         guard !context.sources.isEmpty else { return [] }
         let records = context.sources.map { ["id": $0.id.uuidString, "title": $0.title, "content": $0.content, "app": $0.app] }
@@ -102,7 +105,7 @@ extension AIClient {
         每个事项和每个子任务都必须有 evidence，逐字引用 records 中 content 或 title 的连续原文（8～160字为宜），recordID 必须来自 records。
         使用 \(language) 写简短清晰的标题和备注，最多生成 8 个事项，每个最多 6 个子任务。没有可靠内容就返回空 items。
         只输出 JSON：{"items":[{"title":"事项","note":"有依据的简短备注","existingItemID":null,"evidence":[{"recordID":"记录UUID","quote":"逐字原文"}],"tasks":[{"title":"行动","evidence":[{"recordID":"记录UUID","quote":"逐字原文"}]}]}]}
-        """, user: try Self.json(input), maxOutputTokens: configuration.format == .claude ? 4096 : nil)
+        """, user: try Self.json(input), maxOutputTokens: configuration.format == .claude ? 4096 : nil, timeout: Self.dailyNoteTimeout)
         try Task.checkCancellation()
         return try Self.dailySuggestions(from: answer, context: context, existing: existing)
     }

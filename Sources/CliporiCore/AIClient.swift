@@ -27,7 +27,7 @@ public struct AIClient: Sendable {
         self.configuration = configuration; self.apiKey = apiKey; self.session = session ?? Self.defaultSession
     }
 
-    public func makeRequest(system: String, user: String, maxOutputTokens: Int? = nil) throws -> URLRequest {
+    public func makeRequest(system: String, user: String, maxOutputTokens: Int? = nil, timeout: TimeInterval = 45) throws -> URLRequest {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIError.configuration(L("请先在设置中填写 API Key。")) }
         guard !configuration.model.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIError.configuration(L("请先填写模型名称。")) }
         guard var components = URLComponents(string: configuration.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
@@ -44,7 +44,7 @@ public struct AIClient: Sendable {
         }
         components.path = "/" + path; components.query = nil; components.fragment = nil
         guard let url = components.url else { throw AIError.configuration(L("接口地址无效。")) }
-        var request = URLRequest(url: url); request.httpMethod = "POST"; request.timeoutInterval = 45
+        var request = URLRequest(url: url); request.httpMethod = "POST"; request.timeoutInterval = timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         var payload: [String: Any] = ["model": configuration.model]
         if configuration.format == .openAI {
@@ -61,9 +61,9 @@ public struct AIClient: Sendable {
         return request
     }
 
-    public func complete(system: String, user: String, maxOutputTokens: Int? = nil) async throws -> String {
-        let request = try makeRequest(system: system, user: user, maxOutputTokens: maxOutputTokens)
-        let (data, response) = try await session.data(for: request)
+    public func complete(system: String, user: String, maxOutputTokens: Int? = nil, timeout: TimeInterval? = nil) async throws -> String {
+        let request = try makeRequest(system: system, user: user, maxOutputTokens: maxOutputTokens, timeout: timeout ?? 45)
+        let (data, response) = try await response(for: request, deadline: timeout)
         try Task.checkCancellation()
         guard let http = response as? HTTPURLResponse else { throw AIError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else { throw AIError.service(http.statusCode) }
@@ -76,6 +76,22 @@ public struct AIClient: Sendable {
         }
         guard let content, !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { throw AIError.emptyResponse }
         return content
+    }
+
+    /// An explicit deadline bounds the whole operation, including a slowly trickling response.
+    /// Existing search/classification calls keep their original URLSession timeout behavior.
+    private func response(for request: URLRequest, deadline: TimeInterval?) async throws -> (Data, URLResponse) {
+        guard let deadline else { return try await session.data(for: request) }
+        return try await withThrowingTaskGroup(of: (Data, URLResponse).self) { group in
+            group.addTask { try await session.data(for: request) }
+            group.addTask {
+                try await Task.sleep(for: .seconds(deadline))
+                throw URLError(.timedOut)
+            }
+            defer { group.cancelAll() }
+            guard let result = try await group.next() else { throw CancellationError() }
+            return result
+        }
     }
 
     public func testConnection() async throws {

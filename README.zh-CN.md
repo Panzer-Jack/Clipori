@@ -25,7 +25,7 @@
 从复制记录、分类和 AI 找回，到手写与 AI 辅助整理每日备忘录；Pin 未完成事项，跨天继续推进，随时回看往期。
 
 <p align="center">
-  <img src="docs/assets/clipori-demo.gif" alt="Clipori 产品演示：唤起卡片栏、鼠标悬停时抬升与回弹、单击复制、多选拖入分类、用 AI 找回备忘、整理每日事项、Pin 跨天延续与回看往期" width="1200">
+  <img src="docs/assets/clipori-demo-zh.gif" alt="Clipori 产品演示：唤起卡片栏、鼠标悬停时抬升与回弹、单击复制、多选拖入分类、用 AI 找回备忘、整理每日事项、Pin 跨天延续与回看往期" width="1200">
 </p>
 
 *产品示意动画，使用虚构数据与预设 AI 回复，跨天过程已压缩。*

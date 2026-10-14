@@ -109,6 +109,41 @@ final class DailyNoteAssistantTests: XCTestCase {
         XCTAssertEqual(assistant.suggestions.count, 1)
     }
 
+    @MainActor
+    func testTimeoutAndGatewayErrorsPreserveNotesAndCanBeRetried() async throws {
+        let directory = temporaryDirectory(); defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try MemoryStore(url: directory.appendingPathComponent("memory.sqlite"))
+        try await seed(store)
+        let model = try makeModel(directory)
+        await model.refreshToday()
+        _ = model.addItem(title: "手写安排")
+        let original = model.note
+        var attempt = 0
+        let assistant = DailyNoteAssistant(store: store) { context, _ in
+            attempt += 1
+            if attempt == 1 { throw URLError(.timedOut) }
+            if attempt == 2 { throw AIError.service(504) }
+            return [Self.suggestion(context)]
+        }
+        assistant.start(for: try XCTUnwrap(model.note))
+        await finished(assistant)
+        XCTAssertTrue(assistant.hasFailed)
+        XCTAssertTrue(assistant.message?.contains("180") == true)
+        XCTAssertTrue(assistant.suggestions.isEmpty)
+        XCTAssertEqual(model.note, original)
+        assistant.start(for: try XCTUnwrap(model.note))
+        await finished(assistant)
+        XCTAssertTrue(assistant.hasFailed)
+        XCTAssertNotNil(assistant.message)
+        XCTAssertEqual(model.note, original)
+        assistant.start(for: try XCTUnwrap(model.note))
+        await finished(assistant)
+        XCTAssertFalse(assistant.hasFailed)
+        XCTAssertNil(assistant.message)
+        XCTAssertEqual(assistant.suggestions.count, 1)
+        XCTAssertEqual(model.note, original)
+    }
+
     private func temporaryDirectory() -> URL { FileManager.default.temporaryDirectory.appendingPathComponent("DailyAssistant-\(UUID())") }
     private func seed(_ store: MemoryStore) async throws {
         try await store.save(Memory(body: "SDK 明天需要完成上报测试", source: "Chat", now: DailyNoteDay.date(for: "2026-10-14")!))
