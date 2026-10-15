@@ -20,11 +20,11 @@ No app release or version tag is needed for website updates. To use a custom dom
 
 ## Media
 
-English and Chinese GIFs, H.264 MP4s with fast-start metadata, and JPEG posters are generated together by `scripts/make-demo.sh`. Both languages use a 1200 × 800, 50-second walkthrough: 20 seconds of clipboard features followed by 30 seconds of daily notes. Video and GIF use the same source frames, and posters show the pinned daily note at 34 seconds. They loop silently without native video controls; a discreet play/pause button remains accessible. GIF links remain available. Playback pauses when scrolled offscreen or the tab is hidden, then resumes on return unless the visitor paused it. Reduced-motion preferences disable automatic playback.
+English and Chinese GIFs, H.264 MP4s with fast-start metadata, and JPEG posters are generated together by `scripts/make-demo.sh`. Both languages use a 1200 × 800, 78-second walkthrough: 20 seconds of shelf interactions, 28 seconds of metadata, deduplication, ordering and AI classification, followed by 30 seconds of daily notes. Video and GIF use the same source frames, and posters show text counts and image metadata at 22 seconds. They loop silently without native video controls; a discreet play/pause button remains accessible. GIF links remain available. Playback pauses when scrolled offscreen or the tab is hidden, then resumes on return unless the visitor paused it. Reduced-motion preferences disable automatic playback.
 
 Keep exported GIFs below the host's 25 MiB per-file limit. The generator checks both GIF sizes before updating public files. Recheck the durations, language, and posters after changes; the video element uses the same 1200 × 800 dimensions in both languages.
 
-The six independent feature demos use HTML/CSS animation with fictional data: capture, paste, multi-select categorization, AI recall, optional AI classification, and editing or appending to saved memories. Switch with tabs, previous/next buttons, arrow keys, or a horizontal swipe. Only the active, visible scene animates. A pause button and reduced-motion static compositions are provided. Scroll effects use IntersectionObserver and a single animation frame per scroll update; they do not hijack scrolling.
+The six independent feature demos use HTML/CSS animation with fictional data: capture, paste, multi-select categorization, AI recall, optional AI classification of new captures, and editing or appending to saved memories. Switch with tabs, previous/next buttons, arrow keys, or a horizontal swipe. Only the active, visible scene animates. A pause button and reduced-motion static compositions are provided. Scroll effects use IntersectionObserver and a single animation frame per scroll update; they do not hijack scrolling.
 
 ```sh
 # Regenerate both languages: GIFs, MP4s, and posters.
@@ -41,4 +41,4 @@ The website identifies this media as an illustrated walkthrough, not a live scre
 
 `bash scripts/build-site.sh` 导出公开页面。GitHub Pages 来源选择 GitHub Actions 后，推送官网相关文件到 `main` 即可自动发布；也可手动运行 **Publish website**。官网更新不会触发应用 Release。安装命令的复制按钮只复制文字，不在访问者电脑上执行命令。
 
-更新演示时运行 `./scripts/make-demo.sh`，一次生成中英文总 GIF、官网 MP4 和封面，再运行 `bash scripts/build-site.sh` 检查导出。两种语言均为 1200 × 800、50 秒，包含每日备忘录；不要只替换 README 引用的 GIF。
+更新演示时运行 `./scripts/make-demo.sh`，一次生成中英文总 GIF、官网 MP4 和封面，再运行 `bash scripts/build-site.sh` 检查导出。两种语言均为 1200 × 800、78 秒，包含字数／图片大小、去重、下次打开时前移、新记录自动分类与历史手动分类，以及每日备忘录；不要只替换 README 引用的 GIF。

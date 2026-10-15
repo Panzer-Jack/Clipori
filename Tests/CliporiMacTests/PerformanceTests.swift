@@ -43,7 +43,8 @@ final class PerformanceTests: XCTestCase {
         let board = NSPasteboard.withUniqueName()
         defer { board.releaseGlobally() }
         let monitor = ClipboardMonitor(model: model, pasteboard: board, source: { .init(name: "Performance fixture", bundleID: "test.performance", processID: nil) })
-        monitor.start()
+        monitor.start(observeExternalEvents: false)
+        defer { monitor.stop() }
         let idleCPU = cpuSeconds(), idleStart = CACurrentMediaTime()
         try await Task.sleep(for: .seconds(12))
         report["hidden_idle_cpu_percent_one_core"] = 100 * (cpuSeconds() - idleCPU) / (CACurrentMediaTime() - idleStart)

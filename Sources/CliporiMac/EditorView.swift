@@ -5,7 +5,7 @@ typealias EditorModel = MemoryEditor
 extension MemoryEditor {
     convenience init(record: Memory?, app: AppModel) {
         self.init(record: record, store: app.store) { [weak app] in
-            app?.cancelAI(); await app?.reload(); app?.startClassification()
+            app?.cancelAI(); await app?.reload()
         }
     }
 }

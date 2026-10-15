@@ -17,6 +17,11 @@ extension MemoryStore {
         try db.data("SELECT \(thumbnail ? "thumbnail" : "png") FROM image_attachments WHERE id=?", [.text(attachment)])
     }
 
+    /// SQLite reads the blob length without loading the full image into the card view.
+    public func imageByteCount(attachment: String) throws -> Int64? {
+        try db.rows("SELECT length(png) FROM image_attachments WHERE id=?", [.text(attachment)]).first.flatMap { Int64($0[0]) }
+    }
+
     /// Keep the bounded undo stack's attachments until they are restored or evicted.
     /// At startup the stack is empty, so previously deleted images can also be reclaimed.
     public func pruneImages(keeping undoAttachments: Set<String> = []) throws {

@@ -13,6 +13,11 @@ final class MobileModel: ObservableObject {
     @Published var error: String?
     @Published var hasMore = false
     @Published var loading = true
+    @Published private(set) var isClassifyingHistory = false
+    @Published private(set) var classificationCompleted = 0
+    @Published private(set) var classificationTotal = 0
+    private var manualClassificationIDs: Set<UUID> = []
+    private var classificationBatchID = UUID()
     let store: MemoryStore
     let cloud: CloudSyncController
     private let classifier: ClassificationRunner
@@ -37,14 +42,14 @@ final class MobileModel: ObservableObject {
             try await store.clean(retentionDays: preferences.retentionDays)
             categories = try await store.categories()
             cloud.onReceive = { [weak self] in await self?.refresh() }
-            await reload(); loading = false; classify()
+            await reload(); loading = false
             await cloud.setEnabled(preferences.iCloudEnabled)
         } catch { self.error = error.localizedDescription; loading = false }
     }
     func refresh() async {
         do { categories = try await store.categories(); try await store.clean(retentionDays: preferences.retentionDays) }
         catch { self.error = error.localizedDescription }
-        cancelAI(); await reload(); classify()
+        cancelAI(); await reload()
     }
     func reload() async {
         let version = generation
@@ -85,7 +90,13 @@ final class MobileModel: ObservableObject {
     func client() throws -> AIClient { try AIClient(configuration: preferences.ai, apiKey: Keychain.read(service: "app.clipori")) }
     func capture(_ text: String) async {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        do { try await store.save(Memory(body: text, source: L("iPhone 剪贴板"))); await refresh() }
+        do {
+            let record = Memory(body: text, source: L("iPhone 剪贴板"))
+            try await store.save(record); await refresh()
+            if preferences.ai.autoClassify, preferences.ai.isConfigured {
+                enqueueClassification(ids: [record.id], client: try client())
+            }
+        }
         catch { self.error = error.localizedDescription }
     }
     func delete(_ record: Memory) async {
@@ -94,16 +105,40 @@ final class MobileModel: ObservableObject {
     }
     func updatePreferences(_ value: Preferences, secret: String) async throws {
         try Keychain.save(secret.trimmingCharacters(in: .whitespacesAndNewlines), service: "app.clipori")
-        try await store.savePreferences(value); L10n.language = value.language; preferences = value; classifier.stop()
+        try await store.savePreferences(value); L10n.language = value.language; preferences = value; stopClassification()
         await refresh(); await cloud.setEnabled(value.iCloudEnabled)
     }
-    func classify() {
-        guard preferences.ai.autoClassify, preferences.ai.isConfigured else { return }
+    func classifyUnclassifiedRecords() async {
+        guard !isClassifyingHistory else { return }
+        isClassifyingHistory = true; classificationCompleted = 0; classificationTotal = 0
+        let batchID = UUID(); classificationBatchID = batchID
         do {
-            classifier.start(client: try client(), onApply: { [weak self] record in
-                guard let self, let index = self.records.firstIndex(where: { $0.id == record.id }) else { return }
-                self.records[index] = record
-            }, onError: { [weak self] error in self?.error = L("自动分类暂未完成：") + error.localizedDescription })
-        } catch { self.error = error.localizedDescription }
+            let client = try client()
+            let ids = try await store.unclassifiedRecordIDs()
+            guard batchID == classificationBatchID else { return }
+            classificationTotal = ids.count; manualClassificationIDs = Set(ids)
+            guard !ids.isEmpty else { isClassifyingHistory = false; return }
+            enqueueClassification(ids: ids, client: client)
+        } catch {
+            guard batchID == classificationBatchID else { return }
+            isClassifyingHistory = false; self.error = error.localizedDescription
+        }
+    }
+    func stopClassification() {
+        classifier.stop(); classificationBatchID = UUID()
+        manualClassificationIDs.removeAll(); isClassifyingHistory = false
+    }
+    private func enqueueClassification(ids: [UUID], client: AIClient) {
+        classifier.start(ids: ids, client: client, onApply: { [weak self] record in
+            guard let self, let index = self.records.firstIndex(where: { $0.id == record.id }) else { return }
+            self.records[index] = record
+        }, onProcessed: { [weak self] id in
+            guard let self, self.manualClassificationIDs.remove(id) != nil else { return }
+            self.classificationCompleted += 1
+            if self.manualClassificationIDs.isEmpty { self.isClassifyingHistory = false }
+        }, onError: { [weak self] error in
+            self?.manualClassificationIDs.removeAll(); self?.isClassifyingHistory = false
+            self?.error = L("分类暂未完成，可手动重试：") + error.localizedDescription
+        })
     }
 }

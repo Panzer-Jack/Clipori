@@ -22,22 +22,25 @@
 
 ## Demo
 
-Capture, organize, and rediscover copied content, then write daily notes or draft them with AI. Pin unfinished work for tomorrow and revisit earlier days.
+See character counts and image sizes, keep repeated text in one card, and bring used cards to the front on your next visit. Classify new entries automatically or sort unclassified history on demand, then plan your day with daily notes.
 
 <p align="center">
-  <img src="docs/assets/clipori-demo.gif" alt="Clipori walkthrough: open the shelf, hover across cards to see them lift and settle, click to copy, drag cards into a category, search with AI, draft daily notes, pin ongoing work, and revisit previous days" width="1200">
+  <img src="docs/assets/clipori-demo.gif" alt="Clipori walkthrough: copy, organize, AI recall, character counts and image sizes, text deduplication, recently used cards, new-entry and manual AI classification, and daily notes" width="1200">
 </p>
 
 *Illustrated walkthrough with fictional data, scripted AI replies, and compressed date transitions.*
 
 ## Features
 
-- Save copied text, links, code, screenshots, and images automatically.
+- Save copied or cut text, links, code, screenshots, and images automatically. Keyboard shortcuts and menu actions both work.
+- See character counts on text cards and the stored image size plus pixel dimensions on image cards.
+- Reuse the existing card when identical text is copied or cut again, preserving its edits and category.
+- Keep recently used cards close: copying or pasting a history card brings it forward the next time the shelf opens; cards stay in place while you browse. Enabled by default and configurable.
 - Open with `⇧⌘V`, click to copy, and double-click to paste.
 - Drag multiple cards into a category and pin entries.
 - Edit records, append notes, or create desktop sticky notes.
 - Write daily notes by hand or draft them with AI from that day's clipboard, review cited sources, carry pinned work forward, and revisit previous dates.
-- Search and classify with AI using your own OpenAI or Claude compatible service.
+- Search with your own OpenAI or Claude compatible service. Optionally auto-classify newly captured entries; classify unclassified history manually in Settings → AI.
 - Customize shortcuts, language, retention, and excluded apps.
 
 ## Get started
@@ -52,7 +55,7 @@ Capture, organize, and rediscover copied content, then write daily notes or draf
    ```
 
 3. **Open** Clipori and press **`⇧⌘V`**. It lives in the menu bar. Start copying text or images to build your history.
-4. **Enable direct paste**, if you want it: System Settings → Privacy & Security → Accessibility → Clipori. Without this permission, copy a card and paste manually with `⌘V`.
+4. **Enable direct paste**, if you want it: the first double-click or `↩` paste requests Accessibility permission. You can also request it in Settings → General → Quick paste, then enable Clipori in macOS settings. Without permission, the card is copied so you can paste manually with `⌘V`. Copying and history ordering need no permission.
 5. **Set up AI** in Settings → AI: choose a protocol, enter your endpoint, model, and API key, then test and save. Clipboard history and keyword search also work without AI.
 
 > Early builds use an ad hoc signature and are not notarized by Apple. If macOS blocks a package you trust, follow [Apple's Open Anyway instructions](https://support.apple.com/en-us/102445). If Releases has no installers yet, [build from source](docs/DEVELOPMENT.md#build-from-source).
@@ -76,7 +79,9 @@ Every app shortcut is customizable in Settings → Shortcuts. [See all controls 
 ## Data and settings
 
 - History is stored locally in SQLite; API keys stay in the Keychain. You can pause capture or exclude apps. Standard clipboard privacy markers are respected.
-- AI search sends your question and candidate excerpts to your configured service. Automatic classification sends the entry being categorized and is off by default. Image pixels are not sent.
+- AI search sends your question and candidate excerpts to your configured service. **AI auto-classification is off by default** and only processes new local captures after it is enabled. Startup, re-enabling it, edits, and repeat copies do not classify your backlog.
+- Use **Settings → AI → Classify uncategorized records** to process eligible unclassified history with your saved AI configuration, even when automatic classification is off. It shows progress and can be stopped. Manual categories are preserved; entries without a match remain unclassified.
+- Classification uses titles and text, choosing from your existing ordinary categories. Image pixels are never sent: images with text titles or notes can be classified from that text; image-only entries are skipped. There is no OCR or visual classification.
 - **AI draft** in daily notes sends excerpts for the selected date and existing items to your service. Review sources, edit, and select suggestions before adding them. There is no automatic daily upload in the background.
 - New installations keep history for 30 days. Choose 1 day, 1 week, 1 month, 1 year, or forever. Pinned entries and Pinboards are kept indefinitely. Upgrades preserve your settings; shortening retention requires confirmation.
 - The interface uses Chinese when it is the system's preferred language, English otherwise. You can also choose a language in Settings.
@@ -86,9 +91,11 @@ Every app shortcut is customizable in Settings → Shortcuts. [See all controls 
 <details>
 <summary>Storage and image details</summary>
 
-The database lives at `~/Library/Application Support/Clipori/clipori.sqlite`; open its folder from Settings. Capture exclusions cannot identify every sensitive item. Retention uses the original save time; editing does not extend it. Deleting a Pinboard keeps its entries and returns them to the normal retention policy.
+The database lives at `~/Library/Application Support/Clipori/clipori.sqlite`; open its folder from Settings. Capture exclusions cannot identify every sensitive item. Retention uses the original save time; editing, repeat copying, and moving a card forward do not extend it. Deleting a Pinboard keeps its entries and returns them to the normal retention policy.
 
-PNG, TIFF, and JPEG images are supported. Use `⌃⇧⌘4` to copy a screenshot selection; screenshots saved only as files are not automatically captured. Clipori preserves pixel dimensions and transparency, stores small thumbnails for browsing, and copies PNG/TIFF for compatible apps. Add titles or notes to make images searchable. Images above 128 MB or 80 megapixels are rejected with a message.
+Character counts exclude whitespace and line breaks, but include punctuation and emoji. Text and links are deduplicated only when their full text matches exactly; differences in case, spaces, or line breaks remain separate. Images are not deduplicated, and existing duplicate history is not bulk-cleaned. External repeat copies or cuts move the existing card forward when “Move to front after use” is enabled.
+
+PNG, TIFF, and JPEG images are supported. The size label reflects the locally stored PNG, which can differ from the original file size. Use `⌃⇧⌘4` to copy a screenshot selection; screenshots saved only as files are not automatically captured. Clipori preserves pixel dimensions and transparency, stores small thumbnails for browsing, and copies PNG/TIFF for compatible apps. Add titles or notes to make images searchable. Images above 128 MB or 80 megapixels are rejected with a message.
 
 </details>
 

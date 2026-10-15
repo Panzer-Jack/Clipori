@@ -10,7 +10,7 @@ struct MobileHome: View {
     @State private var deleting: Memory?
     @State private var copied = false
 
-    private var motion: Animation? { model.preferences.reduceMotion || reducedMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88) }
+    private var motion: Animation? { reducedMotion ? nil : .spring(response: 0.38, dampingFraction: 0.88) }
     var body: some View {
         NavigationStack {
             ScrollView {

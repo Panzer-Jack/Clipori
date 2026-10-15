@@ -5,6 +5,34 @@ import CliporiCore
 
 @MainActor
 final class ClipboardMonitorTests: XCTestCase {
+    func testCutIsCapturedWhenCliporiIsForegroundAndDataArrivesAfterDeclaration() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let model = try AppModel(directory: directory, preview: true)
+        model.ready = true; model.isVisible = true
+        let board = NSPasteboard.withUniqueName()
+        defer { board.releaseGlobally() }
+        let monitor = ClipboardMonitor(model: model, pasteboard: board, source: {
+            .init(name: "Clipori", bundleID: "app.clipori", processID: ProcessInfo.processInfo.processIdentifier)
+        })
+        // Both Cmd-X and menu Cut reach this same NSPasteboard path; no key event is needed.
+        board.declareTypes([.string], owner: nil)
+        let declared = board.changeCount
+        monitor.poll()
+        board.setString("text cut via menu", forType: .string)
+        XCTAssertEqual(board.changeCount, declared)
+        monitor.poll()
+        try await Task.sleep(for: .milliseconds(80))
+        let records = try await model.store.list()
+        XCTAssertEqual(records.map(\.body), ["text cut via menu"])
+        XCTAssertEqual(model.memories, records, "A cut must be visible immediately even when the shelf was already open")
+        let copied = await monitor.copy(try XCTUnwrap(records.first))
+        XCTAssertTrue(copied)
+        monitor.poll()
+        try await Task.sleep(for: .milliseconds(80))
+        XCTAssertEqual(model.captureCount, 1, "Card copies must still suppress self-capture")
+    }
+
     func testCopyReplacesEveryPreviousItemAndFormat() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         defer { try? FileManager.default.removeItem(at: directory) }

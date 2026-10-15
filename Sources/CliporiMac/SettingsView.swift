@@ -67,6 +67,7 @@ struct SettingsView: View {
                 do { apiKey = try Keychain.read(service: app.keychainService) } catch { feedback = error.localizedDescription }
                 launchAtLogin = SMAppService.mainApp.status == .enabled
             }
+            .task(id: selectedTab) { if selectedTab == 1 { await app.refreshUnclassifiedCount() } }
             .alert(L("启用自动清理？"), isPresented: $showRetentionConfirmation) {
                 Button(L("取消"), role: .cancel) { pendingPreferences = nil }
                 Button(L("保存并清理"), role: .destructive) { if let value = pendingPreferences { persist(value) } }
@@ -81,7 +82,6 @@ struct SettingsView: View {
             Divider()
             Picker(L("外观"), selection: $draft.appearance) { Text(L("跟随系统")).tag("system"); Text(L("浅色")).tag("light"); Text(L("深色")).tag("dark") }
             Picker(L("语言"), selection: $draft.language) { ForEach(AppLanguage.allCases, id: \.self) { Text($0.title).tag($0) } }
-            Toggle(L("减少动效"), isOn: $draft.reduceMotion)
             Toggle(L("暂停自动记录"), isOn: $draft.capturePaused)
             Toggle(L("登录时启动"), isOn: $launchAtLogin).onChange(of: launchAtLogin) { _, enabled in
                 do { if enabled { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() } }
@@ -90,11 +90,30 @@ struct SettingsView: View {
             Divider()
             retentionSettings
             Divider()
-            sectionTitle(L("粘贴到原应用"), icon: "arrow.up.doc")
-            Text(L("直接粘贴需要辅助功能权限；未授权时，选中的内容会先复制到剪贴板，可手动按 ⌘V 粘贴。"))
-                .font(.system(size: 12)).foregroundStyle(.secondary)
-            Button(L("打开辅助功能设置")) {
-                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") { NSWorkspace.shared.open(url) }
+            VStack(alignment: .leading, spacing: 10) {
+                sectionTitle(L("历史排序"), icon: "arrow.up.arrow.down")
+                Toggle(L("使用后移到最前"), isOn: $draft.moveToFrontAfterUse)
+                Text(L("复制或粘贴卡片后，下次打开时排到最前，当前卡片位置不变。外部重复复制或剪切也会前移。"))
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+            }
+            Divider()
+            VStack(alignment: .leading, spacing: 10) {
+                sectionTitle(L("快捷粘贴"), icon: "arrow.up.doc")
+                Text(L("双击卡片或按回车，将内容直接粘贴到之前的应用。"))
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                HStack {
+                    Label(L(app.hasAccessibilityPermission ? "已授权" : "需要辅助功能权限"),
+                          systemImage: app.hasAccessibilityPermission ? "checkmark.circle.fill" : "lock.circle")
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                    Spacer()
+                    if !app.hasAccessibilityPermission {
+                        Button(L("申请辅助功能权限")) { app.onRequestAccessibility?() }
+                    }
+                }
+                if !app.hasAccessibilityPermission {
+                    Text(L("未授权也可单击复制，再到目标应用按 ⌘V。"))
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                }
             }
         }
     }
@@ -122,13 +141,33 @@ struct SettingsView: View {
             }
             Divider()
             Toggle(L("AI 自动分类"), isOn: $draft.ai.autoClassify)
-            Text(L("开启后，会向你配置的服务发送待分类的记录内容。AI 搜索只发送问题和候选片段；API Key 不随记录同步。"))
+            Text(L("仅自动分类开启后新收录的记录，不处理历史记录，也不覆盖手动分类。"))
                 .font(.system(size: 12)).foregroundStyle(.secondary).lineSpacing(4)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Button(L("分类未分类记录")) { Task { await app.classifyUnclassifiedRecords() } }
+                        .disabled(app.isClassifyingHistory || app.unclassifiedCount == 0 || !app.preferences.ai.isConfigured)
+                    if app.isClassifyingHistory {
+                        ProgressView().controlSize(.small)
+                        Text(LF("已处理 %d / %d 条", app.classificationCompleted, app.classificationTotal))
+                        Button(L("停止")) { app.stopClassification() }
+                    } else {
+                        Text(LF("%d 条待分类", app.unclassifiedCount))
+                    }
+                }.font(.system(size: 12))
+                Text(L("手动处理当前未分类记录，使用已保存的 AI 配置；无需开启自动分类。没有合适分类的记录会保留在未分类。"))
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                if !app.classificationStatus.isEmpty {
+                    Text(app.classificationStatus).font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+            }
+            Text(L("分类会向你配置的 AI 服务发送记录标题和文字内容；图片不会发送。AI 搜索只发送问题和候选片段，API Key 不随记录同步。"))
+                .font(.system(size: 11)).foregroundStyle(.secondary)
+            Divider()
             Text(L("每日备忘录可通过 AI 整理当天剪贴板，生成可编辑的事项建议，选择后加入。"))
                 .font(.system(size: 12)).foregroundStyle(.secondary)
             Text(L("文字片段与已有事项会发送至你在设置中配置的 AI 服务，图片不会发送。"))
                 .font(.system(size: 11)).foregroundStyle(.secondary)
-            Button(L("重试待分类记录")) { app.startClassification(); feedback = L("已安排后台分类。") }.disabled(!app.preferences.ai.autoClassify)
         }
     }
     private var categorySettings: some View {

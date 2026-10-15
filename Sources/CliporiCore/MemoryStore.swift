@@ -19,6 +19,7 @@ public actor MemoryStore {
         try db.execute("CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
         try db.execute("CREATE TABLE IF NOT EXISTS tombstones (id TEXT PRIMARY KEY, kind TEXT NOT NULL, deleted REAL NOT NULL)")
         try db.execute("CREATE TABLE IF NOT EXISTS image_attachments (id TEXT PRIMARY KEY, png BLOB NOT NULL, thumbnail BLOB NOT NULL)")
+        try Self.installClipboardHistorySchema(db)
         try Self.installSyncSchema(db)
         if try db.rows("SELECT value FROM metadata WHERE key='initialized'").isEmpty {
             let encoder = JSONEncoder()
@@ -76,7 +77,13 @@ public actor MemoryStore {
             throw DatabaseError(message: L("原记录已被删除，请复制内容后另建备忘。"))
         }
         let payload = String(decoding: try encoder.encode(record), as: UTF8.self)
-        try db.execute("INSERT OR REPLACE INTO memories VALUES (?, ?, ?, ?, ?, ?, ?, ?)", [
+        // Update in place so edits do not cascade-delete local recency metadata.
+        // A separate UPDATE also preserves the sync triggers' own conflict handling.
+        let exists = try !db.rows("SELECT id FROM memories WHERE id=?", [.text(record.id.uuidString)]).isEmpty
+        let sql = exists
+            ? "UPDATE memories SET body=?2, title=?3, created=?4, modified=?5, category=?6, protected=?7, payload=?8 WHERE id=?1"
+            : "INSERT INTO memories (id, body, title, created, modified, category, protected, payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        try db.execute(sql, [
             .text(record.id.uuidString), .text(record.body), .text(record.title),
             .number(record.createdAt.timeIntervalSince1970), .number(record.modifiedAt.timeIntervalSince1970),
             record.categoryID.map { .text($0.uuidString) } ?? .null, .number(record.keepForever ? 1 : 0), .text(payload)
@@ -103,7 +110,7 @@ public actor MemoryStore {
         }
         let filter = clauses.isEmpty ? "" : " WHERE " + clauses.joined(separator: " AND ")
         values += [.number(Double(max(1, min(limit, 500)))), .number(Double(max(0, offset)))]
-        return try decodeRows(db.rows("SELECT payload FROM memories\(filter) ORDER BY created DESC, id DESC LIMIT ? OFFSET ?", values))
+        return try decodeRows(db.rows("SELECT m.payload FROM memories m LEFT JOIN memory_recency r ON r.id=m.id\(filter) ORDER BY COALESCE(r.last_used, m.created) DESC, m.id DESC LIMIT ? OFFSET ?", values))
     }
 
     public func candidates(plan: SearchPlan, categoryID: UUID? = nil, limit: Int = 50) throws -> [Memory] {
@@ -235,6 +242,17 @@ public actor MemoryStore {
         try decodeRows(db.rows("SELECT payload FROM memories WHERE json_extract(payload, '$.assignment')='none' AND (json_extract(payload, '$.kind')!='image' OR length(trim(title || body))>0) ORDER BY created DESC LIMIT ?", [.number(Double(limit))]))
     }
 
+    /// A snapshot for a user-requested batch, including earlier AI attempts with no match.
+    /// Manual choices (including an explicit unclassified choice) remain untouched.
+    public func unclassifiedRecordIDs() throws -> [UUID] {
+        try db.rows("SELECT id FROM memories WHERE \(Self.unclassifiedFilter) ORDER BY created DESC, id DESC")
+            .compactMap { $0.first.flatMap(UUID.init(uuidString:)) }
+    }
+    public func unclassifiedCount() throws -> Int {
+        Int(try db.rows("SELECT count(*) FROM memories WHERE \(Self.unclassifiedFilter)").first?.first ?? "0") ?? 0
+    }
+    private static let unclassifiedFilter = "category IS NULL AND json_extract(payload, '$.assignment')!='manual' AND (json_extract(payload, '$.kind')!='image' OR length(trim(title || body, char(9) || char(10) || char(13) || ' '))>0)"
+
     public func preferences() throws -> Preferences {
         guard let value = try db.rows("SELECT value FROM metadata WHERE key='preferences'").first?.first else {
             // Existing installs without an explicit settings row used forever. Preserve their history.
@@ -246,7 +264,7 @@ public actor MemoryStore {
         try db.execute("INSERT OR REPLACE INTO metadata VALUES ('preferences', ?)", [.text(String(decoding: try encoder.encode(preferences), as: UTF8.self))])
     }
 
-    private func decodeRows(_ rows: [[String]]) throws -> [Memory] {
+    func decodeRows(_ rows: [[String]]) throws -> [Memory] {
         try rows.map { try decoder.decode(Memory.self, from: Data($0[0].utf8)) }
     }
 

@@ -27,6 +27,15 @@ final class AppModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var ready = false
     @Published var captureCount = 0
+    @Published var hasAccessibilityPermission = false
+    @Published private(set) var unclassifiedCount = 0
+    @Published private(set) var isClassifyingHistory = false
+    @Published private(set) var classificationCompleted = 0
+    @Published private(set) var classificationTotal = 0
+    @Published private(set) var classificationStatus = ""
+    private var manualClassificationIDs: Set<UUID> = []
+    private var classificationBatchID = UUID()
+    private let classificationClientProvider: (() throws -> AIClient)?
     @Published var presentation = UUID()
     @Published var hasMore = false
     @Published private(set) var isClearingHistory = false
@@ -37,6 +46,7 @@ final class AppModel: ObservableObject {
     lazy var cloudSync = CloudSyncController(store: store, directory: dataDirectory)
     var onPaste: ((Memory) -> Void)?
     var onCopy: ((Memory) -> Void)?
+    var onRequestAccessibility: (() -> Void)?
     var onPreview: ((Memory) -> Void)?
     var onRename: ((Memory) -> Void)?
     var onValidateShortcuts: ((ShortcutPreferences) throws -> Void)?
@@ -63,13 +73,16 @@ final class AppModel: ObservableObject {
     private var generation = 0
     private var historyRevision = 0
     private var cleanupTimer: Timer?
+    private var shelfOrderBeforeUse: [UUID]?
+    private var recentlyUsedIDs: [UUID] = []
 
     var displayed: [Memory] { aiResults ?? memories }
     var selected: Memory? { displayed.first { $0.id == selectionID } }
-    var motion: Bool { !preferences.reduceMotion && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+    var motion: Bool { !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
     var keychainService: String { demo ? "app.clipori.preview" : "app.clipori" }
 
-    init(directory: URL? = nil, preview: Bool? = nil) throws {
+    init(directory: URL? = nil, preview: Bool? = nil, classificationClientProvider: (() throws -> AIClient)? = nil) throws {
+        self.classificationClientProvider = classificationClientProvider
         demo = preview ?? ProcessInfo.processInfo.arguments.contains("--demo")
         let override = ProcessInfo.processInfo.environment["CLIPORI_DATA_DIR"]
         if let directory { dataDirectory = directory }
@@ -91,7 +104,6 @@ final class AppModel: ObservableObject {
             try await store.pruneImages()
             await reload(); ready = true
             applyAppearance()
-            if !demo { startClassification() }
             cloudSync.onReceive = { [weak self] in
                 guard let self else { return }
                 self.cancelAI()
@@ -105,7 +117,6 @@ final class AppModel: ObservableObject {
                     self.reconcileSelection()
                     self.pendingIncoming += 1
                 } else { await self.reload() }
-                self.startClassification()
             }
             if !demo { await cloudSync.setEnabled(preferences.iCloudEnabled) }
             cleanupTimer = Timer.scheduledTimer(withTimeInterval: 900, repeats: true) { [weak self] _ in
@@ -120,7 +131,14 @@ final class AppModel: ObservableObject {
             let records = try await store.list(query: query, categoryID: categoryID)
             let count = try await store.count()
             guard currentGeneration == generation else { return }
-            memories = records; totalCount = count; hasMore = records.count == 80
+            memories = records
+            if isVisible, let order = shelfOrderBeforeUse {
+                let ranks = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
+                let known = records.filter { ranks[$0.id] != nil }.sorted { ranks[$0.id]! < ranks[$1.id]! }
+                memories = records.filter { ranks[$0.id] == nil } + known
+                shelfOrderBeforeUse = memories.map(\.id)
+            }
+            totalCount = count; hasMore = records.count == 80
             reconcileSelection()
         } catch { errorMessage = error.localizedDescription }
     }
@@ -144,38 +162,80 @@ final class AppModel: ObservableObject {
             await reload()
         }
     }
-    func accept(_ record: Memory) async {
-        guard !isClearingHistory else { return }
+    @discardableResult
+    func accept(_ record: Memory) async -> Memory? {
+        guard !isClearingHistory else { return nil }
         let revision = historyRevision
         do {
-            try await store.save(record)
-            guard revision == historyRevision else { return }
-            try await didCapture()
+            let captured = try await store.captureText(record)
+            guard revision == historyRevision else { return nil }
+            if captured.id == record.id { try await didCapture(); classifyNewRecord(captured) }
+            else {
+                captureCount += 1
+                await didUse(captured, deferWhileVisible: false)
+            }
+            return captured
+        } catch { errorMessage = error.localizedDescription; return nil }
+    }
+    func didUse(_ record: Memory, deferWhileVisible: Bool = true) async {
+        guard preferences.moveToFrontAfterUse, !isClearingHistory else { return }
+        let revision = historyRevision
+        if deferWhileVisible, isVisible, shelfOrderBeforeUse == nil {
+            shelfOrderBeforeUse = memories.map(\.id)
+        }
+        do {
+            let updated = try await store.markUsed(id: record.id)
+            guard updated, revision == historyRevision else { return }
+            recentlyUsedIDs.removeAll { $0 == record.id }
+            recentlyUsedIDs.insert(record.id, at: 0)
+            if !deferWhileVisible {
+                // An external duplicate is a new capture, while earlier card clicks remain deferred.
+                if shelfOrderBeforeUse != nil {
+                    shelfOrderBeforeUse?.removeAll { $0 == record.id }
+                    shelfOrderBeforeUse?.insert(record.id, at: 0)
+                }
+                await reload()
+            } else if !isVisible { await reload() }
         } catch { errorMessage = error.localizedDescription }
     }
-    func acceptImage(_ data: Data, record: Memory) async {
-        guard !isClearingHistory else { return }
+    func refreshForPresentation() async {
+        shelfOrderBeforeUse = nil
+        let usedIDs = recentlyUsedIDs
+        recentlyUsedIDs = []
+        pendingIncoming = 0
+        await reload()
+        for id in usedIDs.reversed() {
+            if let index = aiResults?.firstIndex(where: { $0.id == id }),
+               let used = aiResults?.remove(at: index) { aiResults?.insert(used, at: 0) }
+        }
+        if let id = usedIDs.first, displayed.contains(where: { $0.id == id }) { select(id) }
+    }
+    @discardableResult
+    func acceptImage(_ data: Data, record: Memory) async -> Memory? {
+        guard !isClearingHistory else { return nil }
         let revision = historyRevision
         do {
             let image = try await ClipboardImageProcessor.shared.prepare(data)
-            guard !isClearingHistory, revision == historyRevision else { return }
-            _ = try await store.saveImage(record, png: image.png, thumbnail: image.thumbnail, size: image.size)
-            guard revision == historyRevision else { return }
+            guard !isClearingHistory, revision == historyRevision else { return nil }
+            let captured = try await store.saveImage(record, png: image.png, thumbnail: image.thumbnail, size: image.size)
+            guard revision == historyRevision else { return nil }
             try await didCapture()
-        } catch { toast(error.localizedDescription) }
+            classifyNewRecord(captured)
+            return captured
+        } catch { toast(error.localizedDescription); return nil }
     }
     private func didCapture() async throws {
         captureCount += 1
         totalCount = try await store.count()
-        if isVisible { pendingIncoming += 1 } else { await reload() }
-        startClassification()
+        // Newly cut/copied content must be available even if capture finishes after the shelf opens.
+        await reload()
     }
     func showIncoming() { pendingIncoming = 0; query = ""; categoryID = nil; cancelAI(); Task { await reload() } }
 
     func save(_ record: Memory) async throws {
         try await store.save(record)
         // Invalidate stale AI answers as soon as the underlying content changes.
-        cancelAI(); await reload(); startClassification()
+        cancelAI(); await reload()
     }
     func delete(_ record: Memory) {
         guard !isClearingHistory else { return }
@@ -308,8 +368,8 @@ final class AppModel: ObservableObject {
     func clearHistory() async throws -> Int {
         guard !isClearingHistory else { return 0 }
         isClearingHistory = true; historyRevision += 1
-        generation += 1; searchTask?.cancel(); cancelAI(); classifier.stop()
-        defer { isClearingHistory = false; startClassification() }
+        generation += 1; searchTask?.cancel(); cancelAI(); stopClassification()
+        defer { isClearingHistory = false }
         // Finish pending autosaves before the transaction, including a new note's first save.
         if let prepare = onPrepareHistoryClear, !(await prepare()) { throw HistoryClearError.unsavedNote }
         let count = try await store.deleteAllMemories()
@@ -317,6 +377,7 @@ final class AppModel: ObservableObject {
         generation += 1; searchTask?.cancel(); cancelAI()
         deletedRecords.removeAll(); restoringRecords.removeAll()
         memories = []; select(nil); endDragging()
+        shelfOrderBeforeUse = nil; recentlyUsedIDs = []
         pendingIncoming = 0; totalCount = 0; hasMore = false
         noticeTask?.cancel(); notice = nil; errorMessage = nil
         onHistoryCleared?()
@@ -367,8 +428,8 @@ final class AppModel: ObservableObject {
         catch { try? onValidateShortcuts?(preferences.shortcuts); throw error }
         L10n.language = value.language
         preferences = value; applyAppearance(); onPreferencesChanged?()
-        classifier.stop()
-        startClassification(); await cleanExpired()
+        stopClassification()
+        await cleanExpired()
         if !demo { await cloudSync.setEnabled(value.iCloudEnabled) }
     }
     func refreshCategories() async {
@@ -393,14 +454,60 @@ final class AppModel: ObservableObject {
             try await store.pruneImages(keeping: retainedAttachments)
         } catch { errorMessage = error.localizedDescription }
     }
-    func startClassification() {
-        guard preferences.ai.autoClassify, preferences.ai.isConfigured, !demo, !isClearingHistory else { return }
+    private func classifyNewRecord(_ record: Memory) {
+        guard preferences.ai.autoClassify, preferences.ai.isConfigured, !demo,
+              !isClearingHistory, record.assignment == .none, record.canClassify else { return }
+        do { enqueueClassification(ids: [record.id], client: try classificationClientProvider?() ?? makeAIClient()) }
+        catch { toast(error.localizedDescription) }
+    }
+    func refreshUnclassifiedCount() async {
+        do { unclassifiedCount = try await store.unclassifiedCount() }
+        catch { errorMessage = error.localizedDescription }
+    }
+    func classifyUnclassifiedRecords() async {
+        guard !isClassifyingHistory, !isClearingHistory, !demo else { return }
+        isClassifyingHistory = true
+        classificationStatus = ""
+        classificationCompleted = 0; classificationTotal = 0
+        let batchID = UUID(); classificationBatchID = batchID
         do {
-            classifier.start(client: try makeAIClient(), onApply: { [weak self] record in
-                guard let self, let index = self.memories.firstIndex(where: { $0.id == record.id }) else { return }
-                self.memories[index] = record
-            }, onError: { [weak self] error in self?.toast(L("自动分类暂未完成，可在设置中重试：") + error.localizedDescription) })
-        } catch { toast(error.localizedDescription) }
+            let client = try classificationClientProvider?() ?? makeAIClient()
+            let ids = try await store.unclassifiedRecordIDs()
+            guard classificationBatchID == batchID, !isClearingHistory else { return }
+            classificationTotal = ids.count; unclassifiedCount = ids.count
+            guard !ids.isEmpty else { isClassifyingHistory = false; return }
+            manualClassificationIDs = Set(ids)
+            enqueueClassification(ids: ids, client: client)
+        } catch {
+            guard classificationBatchID == batchID else { return }
+            isClassifyingHistory = false; classificationStatus = error.localizedDescription
+        }
+    }
+    func stopClassification() {
+        if isClassifyingHistory { classificationStatus = L("已停止，已完成的分类已保留。") }
+        classifier.stop(); classificationBatchID = UUID()
+        manualClassificationIDs.removeAll(); isClassifyingHistory = false
+    }
+    private func enqueueClassification(ids: [UUID], client: AIClient) {
+        classifier.start(ids: ids, client: client, onApply: { [weak self] record in
+            guard let self else { return }
+            if let index = self.memories.firstIndex(where: { $0.id == record.id }) { self.memories[index] = record }
+        }, onProcessed: { [weak self] id in
+            guard let self else { return }
+            if self.manualClassificationIDs.remove(id) != nil {
+                self.classificationCompleted += 1
+                if self.manualClassificationIDs.isEmpty {
+                    self.isClassifyingHistory = false
+                    self.classificationStatus = LF("本次已处理 %d 条，未匹配的记录保留在未分类。", self.classificationCompleted)
+                }
+            }
+            Task { await self.refreshUnclassifiedCount() }
+        }, onError: { [weak self] error in
+            guard let self else { return }
+            self.manualClassificationIDs.removeAll(); self.isClassifyingHistory = false
+            self.classificationStatus = L("分类暂未完成，可手动重试：") + error.localizedDescription
+            self.toast(self.classificationStatus)
+        })
     }
     func toast(_ text: String) {
         noticeTask?.cancel(); notice = text
