@@ -192,6 +192,9 @@ struct ShelfView: View {
                     }.padding(.horizontal, 22).padding(.vertical, 10)
                         .animation(model.motion ? .smooth(duration: 0.22) : nil, value: model.displayed.map(\.id))
                 }.frame(height: 253)
+                    .onChange(of: model.presentation) { _, _ in
+                        if let id = model.selectionToReveal { proxy.scrollTo(id, anchor: .leading) }
+                    }
                     .onChange(of: model.selectionToReveal) { _, id in
                         if let id { withAnimation(animation) { proxy.scrollTo(id, anchor: .center) } }
                     }
@@ -273,17 +276,20 @@ private struct MemoryCard: View {
                 Text(record.displayTitle).font(.system(size: 13, weight: .semibold, design: .rounded)).lineLimit(1).padding(.bottom, 6)
                 MemoryImageView(record: record, store: store).frame(height: 110).clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(alignment: .bottomTrailing) {
-                        if let size = record.imageSize {
-                            Text("\(size.width) × \(size.height)").font(.system(size: 8, design: .monospaced))
-                                .padding(4).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4)).padding(4)
-                        }
+                        MemoryContentInfo(record: record, store: store)
+                            .font(.system(size: 8, design: .monospaced))
+                            .padding(4).background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 4)).padding(4)
                     }
             } else {
                 Text(record.displayTitle).font(.system(size: 16, weight: .semibold, design: .rounded)).lineLimit(2).lineSpacing(3).padding(.bottom, 9)
                 Text(String(record.body.prefix(600))).font(.system(size: 12, design: category?.id == MemoryCategory.defaults[3].id ? .monospaced : .default))
-                    .foregroundStyle(.secondary).lineSpacing(4).lineLimit(5).frame(maxWidth: .infinity, alignment: .topLeading)
+                    .foregroundStyle(.secondary).lineSpacing(4).lineLimit(4).frame(maxWidth: .infinity, alignment: .topLeading)
             }
             Spacer(minLength: 8)
+            if record.kind != .image {
+                MemoryContentInfo(record: record, store: store)
+                    .font(.system(size: 9)).foregroundStyle(.secondary).padding(.bottom, 5)
+            }
             HStack {
                 Text(category?.displayName ?? L("未分类")).font(.system(size: 9, weight: .medium)).padding(.horizontal, 7).padding(.vertical, 3).background(tint.opacity(0.11), in: Capsule()).foregroundStyle(tint)
                 Spacer()
@@ -305,5 +311,30 @@ private struct MemoryCard: View {
             .accessibilityElement(children: .combine)
             .accessibilityLabel(record.displayTitle + ", " + (category?.displayName ?? L("未分类")))
             .accessibilityAddTraits(selected ? [.isSelected] : [])
+    }
+}
+
+private struct MemoryContentInfo: View {
+    let record: Memory
+    let store: MemoryStore
+    @State private var detail = ""
+
+    var body: some View {
+        Text(detail).lineLimit(1)
+            .help(L(record.kind == .image ? "图片大小为本机保存的 PNG 大小。" : "字数包含标点，不计空格和换行。"))
+            .task(id: record) {
+                if record.kind == .image {
+                    var parts: [String] = []
+                    if let attachment = record.attachment,
+                       let bytes = try? await store.imageByteCount(attachment: attachment) {
+                        parts.append(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))
+                    }
+                    if let size = record.imageSize { parts.append("\(size.width) × \(size.height)") }
+                    guard !Task.isCancelled else { return }
+                    detail = parts.joined(separator: " · ")
+                } else {
+                    detail = LF("%d 字", record.characterCount)
+                }
+            }
     }
 }

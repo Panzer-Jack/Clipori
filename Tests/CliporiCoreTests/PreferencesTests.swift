@@ -43,9 +43,14 @@ final class PreferencesTests: XCTestCase {
         let legacy = try JSONDecoder().decode(Preferences.self, from: Data("{}".utf8))
         XCTAssertEqual(legacy.retentionDays, 0)
         XCTAssertEqual(legacy.language, .system)
+        XCTAssertTrue(legacy.moveToFrontAfterUse)
+        XCTAssertTrue(Preferences().moveToFrontAfterUse)
+        let previouslyDisabled = try JSONDecoder().decode(Preferences.self, from: Data(#"{"moveToFrontAfterPaste":false}"#.utf8))
+        XCTAssertFalse(previouslyDisabled.moveToFrontAfterUse)
         XCTAssertEqual(Preferences().retentionDays, 30)
         XCTAssertEqual(HistoryRetention.presets.map(\.days), [1, 7, 30, 365, 0])
         var preferences = legacy
+        preferences.moveToFrontAfterUse = false
         preferences.language = .english
         preferences.shortcuts[.activate] = .init(49, "Space", modifiers: KeyChord.command | KeyChord.option)
         preferences.shortcuts[.preview] = .disabled

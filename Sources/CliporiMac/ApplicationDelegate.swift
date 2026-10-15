@@ -14,6 +14,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
     private var previewWindow: NSWindow?
     private var dailyNotes: DailyNotesController?
     private var applicationKeys: Any?
+    private let accessibilityPermission = AccessibilityPermission()
     private var editors: [UUID: EditorWindowDelegate] = [:]
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -46,7 +47,11 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
             self.previewWindow?.close(); self.previewWindow = nil
         }
         model.onPaste = { [weak self] record in Task { await self?.paste(record) } }
-        model.onCopy = { [weak self] record in Task { if await self?.clipboard.copy(record) == true { self?.model.toast(L("已复制")) } } }
+        model.onCopy = { [weak self] record in Task {
+            guard let self, await self.clipboard.copy(record) else { return }
+            self.model.toast(L("已复制"))
+        } }
+        model.onRequestAccessibility = { [weak self] in self?.requestAccessibility(automatically: false) }
         model.onPreview = { [weak self] record in self?.showPreview(record) }
         model.onRename = { [weak self] record in self?.showEditor(record: record, focusTitle: true) }
         model.onValidateShortcuts = { [weak self] value in try self?.hotKey?.update(value[.activate]) }
@@ -87,6 +92,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+    func applicationWillTerminate(_ notification: Notification) { clipboard?.stop() }
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         shelf?.show()
         return true
@@ -179,6 +185,7 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         guard let target = destination, !target.isTerminated else { model.toast(L("已复制，按 ⌘V 粘贴")); return }
         guard AXIsProcessTrusted() else {
             model.toast(L("已复制，按 ⌘V 粘贴 · 可在设置中授权直接粘贴"))
+            requestAccessibility(automatically: true)
             return
         }
         shelf.hide()
@@ -186,11 +193,16 @@ final class ApplicationDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
             guard NSWorkspace.shared.frontmostApplication?.processIdentifier == target.processIdentifier else { self?.model.toast(L("已复制，切换到目标应用后按 ⌘V")); return }
             let source = CGEventSource(stateID: .combinedSessionState)
-            let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
-            let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
-            down?.flags = .maskCommand; up?.flags = .maskCommand
-            down?.post(tap: .cghidEventTap); up?.post(tap: .cghidEventTap)
+            guard let down = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true),
+                  let up = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false) else { return }
+            down.flags = .maskCommand; up.flags = .maskCommand
+            down.post(tap: .cghidEventTap); up.post(tap: .cghidEventTap)
         }
+    }
+    private func requestAccessibility(automatically: Bool) {
+        guard !model.demo else { return }
+        accessibilityPermission.request(automatically: automatically)
+        clipboard.refreshAccessibilityPermission()
     }
     private func installMainMenu() {
         let main = NSMenu()

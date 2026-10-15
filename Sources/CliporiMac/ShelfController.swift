@@ -52,6 +52,7 @@ final class ShelfController: NSObject, NSWindowDelegate {
     }
     func toggle() { targetVisible ? hide() : show() }
     func show() {
+        let opening = !targetVisible
         if !targetVisible {
             let front = NSWorkspace.shared.frontmostApplication
             if front?.processIdentifier != ProcessInfo.processInfo.processIdentifier { previousApplication = front }
@@ -83,7 +84,7 @@ final class ShelfController: NSObject, NSWindowDelegate {
             }
         }
         animate()
-        if model.pendingIncoming > 0 { model.pendingIncoming = 0; Task { await model.reload() } }
+        if opening { Task { await model.refreshForPresentation() } }
     }
     func hide(restoreFocus: Bool = true) {
         guard targetVisible else { return }

@@ -39,6 +39,12 @@ public struct Memory: Identifiable, Codable, Equatable, Sendable {
         let firstLine = body.prefix { !$0.isNewline }.prefix(70)
         return firstLine.isEmpty ? L(kind == .image ? "图片" : "新备忘") : String(firstLine)
     }
+    /// User-perceived characters, including punctuation and emoji, excluding whitespace.
+    public var characterCount: Int { body.reduce(0) { $0 + ($1.isWhitespace ? 0 : 1) } }
+    public var canClassify: Bool {
+        categoryID == nil && assignment != .manual &&
+        (kind != .image || !(title + body).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
     public var displaySource: String {
         for key in ["手动记录", "剪贴板", "iPhone 剪贴板"] where source == key || source == L10n.text(key, language: .english) { return L(key) }
         return source
@@ -93,21 +99,24 @@ public struct Preferences: Codable, Equatable, Sendable {
     /// Zero means forever. All records share this rule unless explicitly protected.
     public var retentionDays: Int = 30
     public var appearance: String = "system"
-    public var reduceMotion: Bool = false
     public var capturePaused: Bool = false
+    public var moveToFrontAfterUse: Bool = true
     public var ignoredApps: [String] = []
     public var ai = AIConfiguration()
     public var iCloudEnabled = false
     public var language = AppLanguage.system
     public var shortcuts = ShortcutPreferences()
     public init() {}
-    enum CodingKeys: String, CodingKey { case retentionDays, appearance, reduceMotion, capturePaused, ignoredApps, ai, iCloudEnabled, language, shortcuts }
+    enum CodingKeys: String, CodingKey { case retentionDays, appearance, capturePaused, ignoredApps, ai, iCloudEnabled, language, shortcuts
+        // Preserve the stored preference from versions that promoted only after paste.
+        case moveToFrontAfterUse = "moveToFrontAfterPaste"
+    }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         retentionDays = try values.decodeIfPresent(Int.self, forKey: .retentionDays) ?? 0
         appearance = try values.decodeIfPresent(String.self, forKey: .appearance) ?? "system"
-        reduceMotion = try values.decodeIfPresent(Bool.self, forKey: .reduceMotion) ?? false
         capturePaused = try values.decodeIfPresent(Bool.self, forKey: .capturePaused) ?? false
+        moveToFrontAfterUse = try values.decodeIfPresent(Bool.self, forKey: .moveToFrontAfterUse) ?? true
         ignoredApps = try values.decodeIfPresent([String].self, forKey: .ignoredApps) ?? []
         ai = try values.decodeIfPresent(AIConfiguration.self, forKey: .ai) ?? AIConfiguration()
         iCloudEnabled = try values.decodeIfPresent(Bool.self, forKey: .iCloudEnabled) ?? false

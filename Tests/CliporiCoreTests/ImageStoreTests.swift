@@ -2,6 +2,13 @@ import XCTest
 @testable import CliporiCore
 
 final class ImageStoreTests: XCTestCase {
+    func testImageByteCountUsesStoredOriginalAndMissingImagesStayUnknown() async throws {
+        let record = try await store.saveImage(Memory(body: "", kind: .image), png: pixels, thumbnail: thumbnail, size: .init(width: 40, height: 30))
+        let bytes = try await store.imageByteCount(attachment: XCTUnwrap(record.attachment))
+        XCTAssertEqual(bytes, Int64(pixels.count))
+        let missing = try await store.imageByteCount(attachment: "missing")
+        XCTAssertNil(missing)
+    }
     private var directory: URL!
     private var store: MemoryStore!
     private let pixels = Data([0, 255, 0, 128, 1, 2, 3])

@@ -23,7 +23,6 @@ struct MobileSettings: View {
                     HStack(spacing: 14) { MascotView(size: 48); VStack(alignment: .leading) { Text(L("让 Clipori 更懂你")).font(.headline); Text(L("一点小设置，刚刚好的记忆空间。")).font(.caption).foregroundStyle(.secondary) } }.padding(.vertical, 8)
                     Picker(L("外观"), selection: $draft.appearance) { Text(L("跟随系统")).tag("system"); Text(L("浅色")).tag("light"); Text(L("深色")).tag("dark") }
                     Picker(L("语言"), selection: $draft.language) { ForEach(AppLanguage.allCases, id: \.self) { Text($0.title).tag($0) } }
-                    Toggle(L("减少动效"), isOn: $draft.reduceMotion)
                 }
                 Section(L("你的 AI，你来选择")) {
                     Picker(L("接口格式"), selection: $draft.ai.format) { ForEach(AIFormat.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
@@ -41,7 +40,15 @@ struct MobileSettings: View {
                         }
                     }.disabled(testing)
                     Toggle(L("AI 自动分类"), isOn: $draft.ai.autoClassify)
-                    Text(L("开启分类后会发送待分类内容至你配置的服务。AI 搜索发送问题和候选片段。")).font(.caption).foregroundStyle(.secondary)
+                    Text(L("仅自动分类开启后新收录的记录，不处理历史记录，也不覆盖手动分类。")).font(.caption).foregroundStyle(.secondary)
+                    Button(L("分类未分类记录")) { Task { await model.classifyUnclassifiedRecords() } }
+                        .disabled(model.isClassifyingHistory || !model.preferences.ai.isConfigured)
+                    if model.isClassifyingHistory {
+                        Text(LF("已处理 %d / %d 条", model.classificationCompleted, model.classificationTotal)).font(.caption)
+                        Button(L("停止")) { model.stopClassification() }
+                    }
+                    Text(L("手动处理当前未分类记录，使用已保存的 AI 配置；无需开启自动分类。没有合适分类的记录会保留在未分类。")).font(.caption).foregroundStyle(.secondary)
+                    Text(L("分类会向你配置的 AI 服务发送记录标题和文字内容；图片不会发送。AI 搜索只发送问题和候选片段，API Key 不随记录同步。")).font(.caption).foregroundStyle(.secondary)
                 }
                 Section(L("记多久，由你决定")) {
                     Picker(L("历史保留"), selection: $retention) {

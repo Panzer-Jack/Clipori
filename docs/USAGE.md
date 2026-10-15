@@ -32,6 +32,16 @@ Record new combinations and check for conflicts in Settings → Shortcuts. Chang
 
 Direct pasting requires granting Clipori access in macOS Accessibility settings. Without access, Clipori still copies the selected content; switch back to the target app and press `⌘V` to paste. If a shortcut cannot be registered, the app displays a warning and remains accessible from the menu bar.
 
+Clipori requests Accessibility access on the first direct paste. Declining stops automatic requests across launches; retry under Settings → General → Request Accessibility access. Enable Clipori yourself in System Settings; returning to the app rechecks access. Capturing copies or cuts and updating recency do not require this permission.
+
+Text and link cards show a character count for the full body, including punctuation and excluding spaces, tabs, and line breaks. Combined emoji count as one character. Image cards show the stored PNG file size and pixel dimensions; the size can differ from the original JPEG/TIFF.
+
+Copying exactly the same text or link again reuses the existing record without adding a card, keeping its title, category, pin status, and original creation date. Whitespace, line breaks, and case remain significant. Images are not deduplicated, and manually created notes remain independent. Existing duplicates from before the upgrade are not bulk-deleted. Newly cut/copied content refreshes the list immediately after capture, respecting existing search and category filters; duplicate captures do not trigger an incoming-record indicator.
+
+Settings → General → Move to front after use is enabled by default. Repeated external copies or cuts reuse and promote the saved text record. Clicking a card, pressing `⌘C` in the card area, using its copy menu, or directly pasting through Clipori updates recency after successfully writing to the clipboard. Cards keep their positions in the current shelf; reopening applies the new order. Turning the setting off disables promotion for both duplicate captures and history usage. Ordering needs neither external paste detection nor Accessibility access; only direct paste needs that permission. Recency stays local and does not change creation dates, retention periods, or daily-note date attribution.
+
+Cut and Copy use the same capture and deduplication rules, including `⌘X`, context-menu Cut, and cuts within Clipori's editor. Both are captured when they write to the system clipboard, subject to capture pause, ignored apps, and privacy markers. Monitoring continues during menu tracking and checks pending clipboard changes when switching apps, so quickly returning to the shelf does not discard a cut.
+
 Image capture supports clipboard PNG, TIFF, and JPEG data, including screenshots copied with the Control modifier. Screenshots saved only as files are not captured automatically. Images keep their original pixel dimensions and transparency, and copy back as PNG/TIFF for apps that accept image pasting. Use Edit to add a title or searchable notes. Image text recognition and image iCloud sync are not included in this local Mac release; no image pixels are sent to AI. Images above 128 MB or 80 megapixels display an error instead of being saved.
 
 The small card icon automatically indicates content type (text, link, image, or code). Its color follows the category; change category names and colors in Settings → Categories.
@@ -61,3 +71,9 @@ Edit suggestions if needed, then choose **Add selected**. New actions can be app
 Copied duplicates are combined locally. Each request reads up to the 200 most recent eligible records, with a total body budget of 32,000 characters and 2,400 per record. The interface indicates clipping. Clipboard records already removed by cleanup cannot be analyzed, but saved daily notes and their excerpts remain. Errors or cancellation leave your notes unchanged; retry or continue writing manually.
 
 Choose **Add to daily notes** from a card's context menu to add its title and text to today's page. Daily notes are currently local to the Mac, stored in `daily-notes.sqlite` in the data folder. Clipboard retention and **Clear all memories** do not delete daily notes, and iCloud sync does not include them yet.
+
+### AI classification scope
+
+Auto-classification handles only records newly captured locally while it is enabled and AI is configured. Launching, syncing, editing, copying duplicates, enabling the toggle, or saving settings never scans history. Failed or unmatched records remain uncategorized without automatic retries.
+
+To process history, choose Settings → AI → Classify uncategorized records. This uses saved AI settings independently of the automatic toggle, taking a snapshot of currently uncategorized records, including previous AI attempts with no match. Manual assignments, including explicit unclassified choices, are preserved. The UI shows the pending count and batch progress. Stop cancels queued classification, including automatic work, while keeping completed results; future captures still follow the automatic toggle. Images without text are skipped, and only titles or text notes are sent for images. Classification chooses existing regular categories without creating categories or using pinboards.

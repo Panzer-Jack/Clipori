@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 // Deliberately has no screen capture, pasteboard, database, Keychain, or network access.
 // Run through make-demo.sh. Optional last argument renders a single time for inspection.
 guard CommandLine.arguments.count >= 3 else {
-    fputs("Usage: render-demo output-directory brand.png [time-in-seconds] [en|zh]\n", stderr)
+    fputs("Usage: render-demo output-directory brand.png [time-in-seconds] [en|zh] [history]\n", stderr)
     exit(1)
 }
 let output = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
@@ -48,7 +48,8 @@ let translations: [String: String] = [
 ]
 func localized(_ value: String) -> String { chinese ? translations[value] ?? value : value }
 
-let width = 1200, height = 720, fps = 50, duration = 20.0
+let historyChapter = CommandLine.arguments.contains("history")
+let width = 1200, height = historyChapter ? 800 : 720, fps = historyChapter ? 10 : 50, duration = historyChapter ? 28.0 : 20.0
 let white = NSColor(calibratedWhite: 0.97, alpha: 1)
 func color(_ hex: Int, _ alpha: Double = 1) -> NSColor {
     NSColor(srgbRed: Double((hex >> 16) & 255) / 255, green: Double((hex >> 8) & 255) / 255,
@@ -155,7 +156,14 @@ func drawCard(_ index: Int, x: Double, y: Double, h: Double, selected: Bool, hov
         mountain.line(to: NSPoint(x: x + 192, y: y + 125)); mountain.line(to: NSPoint(x: x + 192, y: y + h - 38)); mountain.close()
         color(0x4D446B).setFill(); mountain.fill(); NSGraphicsContext.restoreGraphicsState()
     } else {
-        text(s.body, x + 14, y + 85, index == 2 ? 11 : 12, color(0xD4D0DF), width: 178, mono: index == 2, height: h - 127)
+        text(s.body, x + 14, y + 85, index == 2 ? 11 : 12, color(0xD4D0DF), width: 178, mono: index == 2, height: h - 147)
+    }
+    if index == 4 {
+        box(x + 20, y + h - 58, 168, 18, 4, color(0x20172F, 0.85))
+        text("128 KB · 1200 × 800", x + 24, y + h - 56, 9, white, width: 162)
+    } else {
+        let count = localized(s.body).filter { !$0.isWhitespace }.count
+        text(chinese ? "\(count) 字" : "\(count) characters", x + 14, y + h - 48, 9, muted, width: 178)
     }
     let category = moved && [0, 2].contains(index) ? "Inspiration" : s.category
     let tagWidth = Double(category.count) * 5.4 + 15
@@ -345,6 +353,100 @@ func draw(_ t: Double) {
     drawFooter(active: stage)
 }
 
+// The history chapter shares the shelf renderer's typography and drawing helpers.
+// All examples are fictional. The final scene represents settings and queued work.
+func historyText(_ zh: String, _ en: String) -> String { chinese ? zh : en }
+func drawHistory(_ t: Double) {
+    let stage = t < 6 ? 0 : t < 12 ? 1 : t < 18 ? 2 : 3
+    let titles = [historyText("字数、图片大小，一眼就知道。", "Know what you saved, at a glance."),
+                  historyText("重复复制或剪切，只保留一条。", "Copy or cut again. Keep one card."),
+                  historyText("这次安心浏览，下次优先取用。", "Stay in place now. Come first next time."),
+                  historyText("新记录自动分，历史由你决定。", "New entries automatically. History on demand.")]
+    let captions = [historyText("字数不计空白与换行；图片显示本机保存大小与像素尺寸。", "Counts exclude whitespace. Images show stored PNG size and pixel dimensions."),
+                    historyText("相同文本复用原卡片，保留标题与分类；开启使用后前移时移到前面。", "Identical text reuses its card and category, moving forward when enabled."),
+                    historyText("复制或粘贴历史卡片后，下次打开排到最前。排序默认开启，无需辅助功能权限。", "Copy or paste a card: it leads on reopening. Ordering is on by default; no permission needed."),
+                    historyText("仅按标题和文字分类；不发送图片像素，不识别图片画面。", "Uses titles and text only. No image pixels are sent; no visual recognition.")]
+    box(0, 0, 1200, 800, 0, color(0x16131D))
+    text(historyText("CLIPORI  /  更顺手的剪贴板", "CLIPORI  /  A MORE USEFUL HISTORY"), 42, 23, 12, purple, weight: .semibold)
+    text(titles[stage], 42, 53, 30, weight: .bold, width: 1080)
+    for i in 0..<4 { box(42 + Double(i) * 284, 108, 268, 3, 1, i == stage ? purple : color(0x39343F)) }
+    text(captions[stage], 42, 703, 16, width: 1118, height: 52)
+    text(historyText("产品示意动画 · 虚构数据 · 预设 AI 回复", "ILLUSTRATED WALKTHROUGH · FICTIONAL DATA · SCRIPTED AI"), 42, 764, 10, muted)
+    if stage == 3 {
+        let enabled = t >= 19, matched = t >= 21, manual = t >= 24, finished = t >= 26
+        box(40, 140, 1120, 535, 16, color(0x25212D), stroke: color(0x443B51))
+        text(historyText("设置  /  AI", "Settings  /  AI"), 66, 162, 17, purple, weight: .semibold)
+        text(historyText("AI 服务已配置并保存", "AI service configured and saved"), 66, 201, 12, muted)
+        box(66, 251, 22, 22, 5, enabled ? purple : color(0x49434F))
+        if enabled { text("✓", 69, 251, 18, color(0x21182F), weight: .bold) }
+        text(historyText("AI 自动分类", "AI auto-classification"), 100, 249, 21, weight: .semibold)
+        text(historyText("默认关闭 · 开启后仅处理新收录记录", "Off by default · New captures only when enabled"), 66, 292, 14, muted, width: 480)
+        text(historyText("历史记录不自动补跑，不覆盖手动分类。", "No automatic backlog processing. Manual categories stay."), 66, 325, 13, muted, width: 470, height: 50)
+        box(66, 403, 460, 1, 0, color(0x443B51))
+        box(66, 433, 288, 42, 8, manual && !finished ? color(0x49404F) : color(0x493959), stroke: purple.withAlphaComponent(0.4))
+        text(historyText(manual && !finished ? "正在分类…" : "分类未分类记录", manual && !finished ? "Classifying…" : "Classify uncategorized records"), 80, 443, 16, weight: .semibold, width: 270)
+        text(historyText(finished ? "已完成 2 / 2" : manual ? "已完成 1 / 2     停止" : "2 条历史记录待分类", finished ? "Completed 2 / 2" : manual ? "Completed 1 / 2     Stop" : "2 older entries waiting"), 66, 496, 15, finished ? mint : muted, width: 470)
+        text(historyText("手动点击才开始，无需开启自动分类。", "Starts only on click; works with auto-classification off."), 66, 541, 13, muted, width: 470, height: 55)
+        box(572, 235, 552, 370, 12, color(0x302A38), stroke: color(0x493E56))
+        text(historyText(t < 19.5 ? "启用后，再收录一条新记录" : "新收录", t < 19.5 ? "ENABLE, THEN CAPTURE A NEW ENTRY" : "NEW CAPTURE"), 597, 257, 12, purple, weight: .bold)
+        if t >= 19.5 {
+        text(historyText("雨天，去看展", "Rainy-day gallery"), 597, 294, 23, weight: .semibold, width: 490)
+        text(historyText("周日下午两点，城市美术馆见。", "Meet at the city gallery, Sunday at 2 PM."), 597, 338, 16, muted, width: 490)
+        text(matched ? historyText("✓ 生活", "✓ Life") : historyText(enabled ? "寻找合适的分类…" : "等待开启自动分类", enabled ? "Finding a category…" : "Waiting for auto-classification"), 597, 386, 17, matched ? mint : purple, width: 490)
+        }
+        box(597, 439, 498, 1, 0, color(0x493E56))
+        text(historyText("历史未分类记录", "OLDER UNCLASSIFIED ENTRIES"), 597, 463, 12, muted, weight: .semibold)
+        text(finished ? historyText("✓ 发布清单 → 工作     ✓ 配色笔记 → 灵感", "✓ Release checklist → Work\n✓ Color notes → Inspiration") : historyText("发布清单、配色笔记 · 等待手动处理", "Release checklist, color notes\nWaiting for your manual action"), 597, 500, 16, finished ? mint : muted, width: 490, height: 70)
+        if t >= 18.6 && t < 19.5 { cursor(NSPoint(x: 76, y: 263), clicking: (t - 18.6) / 0.9) }
+        if t >= 23.5 && t < 25 { cursor(NSPoint(x: 255, y: 455), clicking: (t - 23.5).truncatingRemainder(dividingBy: 1)) }
+        return
+    }
+    let recopied = stage == 1 && t >= 8
+    let used = stage == 2 && t >= 13
+    let reopened = stage == 2 && t >= 15.5
+    let closed = stage == 2 && t >= 14.5 && t < 15.5
+    let event: String
+    if stage == 0 { event = historyText("文字与图片，都有清楚的标注", "TEXT AND IMAGE DETAILS, RIGHT ON THE CARD") }
+    else if stage == 1 { event = historyText(recopied ? "✓ 再次剪切相同文本，原记录前移，数量不增加" : "在原应用再次复制 / 剪切「周六，去书店」", recopied ? "✓ Same text cut again. Existing card moves forward; count stays at 3." : "Copy / cut “Saturday at the bookshop” again in the source app") }
+    else { event = historyText(reopened ? "再次打开 Clipori → 刚使用的卡片排到最前" : closed ? "收起面板 → 再按 ⇧⌘V 打开" : used ? "✓ 已复制「发布清单」· 当前卡片位置不变" : "单击「发布清单」，复制历史内容", reopened ? "Reopen Clipori → The card you used comes first" : closed ? "Hide the shelf → Press ⇧⌘V again" : used ? "✓ Release checklist copied. Cards stay in place." : "Click “Release checklist” to copy a saved card") }
+    text(event, 44, 155, 17, stage == 0 ? muted : purple, width: 1110, height: 55)
+    if closed {
+        text("⇧⌘V", 464, 358, 64, purple, weight: .semibold)
+        text(historyText("下次打开，再更新顺序。", "Reopen to refresh the order."), 400, 460, 22, muted, width: 600)
+        return
+    }
+    box(40, 220, 1120, 445, 18, color(0x25212D), stroke: color(0x443B51))
+    image(brand, 62, 237, 36)
+    text("Clipori", 108, 241, 22, weight: .bold)
+    text(historyText("全部记忆", "All memories"), 225, 248, 14, muted)
+    text(historyText("3 条记忆", "3 memories"), 1015, 248, 14, muted, width: 125)
+    let order = stage == 0 ? [1, 0, 2] : stage == 1 ? (recopied ? [0, 1, 2] : [1, 0, 2]) : (reopened ? [1, 0, 2] : [0, 1, 2])
+    let names = [historyText("周六，去书店", "Saturday at the bookshop"), historyText("发布清单", "Release checklist"), historyText("傍晚的色彩", "Evening palette")]
+    let bodies = [historyText("银杏路 42 号，记得带上相机。", "42 Silver Road. Bring a camera."), historyText("完成回归测试\n更新发布说明", "Run regression tests\nUpdate the release notes"), ""]
+    for (position, index) in order.enumerated() {
+        let x = 62 + Double(position) * 366
+        let selected = (stage == 1 && recopied && index == 0) || (stage == 2 && used && index == 1)
+        box(x, 292, 344, 316, 14, color(0x312B39), stroke: selected ? purple : color(0x514658), line: selected ? 2 : 1)
+        text(index == 2 ? historyText("▧ 截图", "▧ Screenshot") : historyText("≡ 备忘录", "≡ Notes"), x + 18, 312, 13, purple)
+        text(String(format: "%02d", position + 1), x + 298, 312, 12, muted, mono: true)
+        text(names[index], x + 18, 355, 21, weight: .semibold, width: 306, height: 62)
+        if index == 2 {
+            box(x + 18, 408, 308, 132, 10, color(0x75629F))
+            dot(x + 234, 422, 45, color(0xF5C6B0))
+            box(x + 18, 505, 308, 35, 0, color(0x30243E, 0.8))
+            text("128 KB · 1200 × 800", x + 91, 514, 13, weight: .medium, width: 235)
+        } else {
+            text(bodies[index], x + 18, 413, 17, color(0xD4D0DF), width: 305, height: 95)
+            let count = bodies[index].filter { !$0.isWhitespace }.count
+            text(chinese ? "\(count) 字" : "\(count) characters", x + 18, 533, 13, muted, width: 300)
+        }
+        text(index == 0 ? historyText("生活", "Life") : index == 1 ? historyText("工作", "Work") : historyText("灵感", "Inspiration"), x + 18, 571, 13, mint)
+        text("10/14 10:24", x + 225, 573, 11, muted, width: 110)
+    }
+    text(historyText("✓ 使用后移到最前", "✓ Move to front after use"), 65, 630, 12, purple)
+    if stage == 2 && t >= 12.5 && t < 14.5 { cursor(NSPoint(x: 598, y: 394), clicking: (t - 12.5).truncatingRemainder(dividingBy: 1)) }
+}
+
 let singleTime = CommandLine.arguments.dropFirst(3).compactMap(Double.init).first
 let frameCount = singleTime == nil ? Int(duration * Double(fps)) : 1
 for frame in 0..<frameCount {
@@ -355,7 +457,8 @@ for frame in 0..<frameCount {
         let cg = NSGraphicsContext(bitmapImageRep: bitmap)!.cgContext
         cg.translateBy(x: 0, y: Double(height)); cg.scaleBy(x: 1, y: -1)
         NSGraphicsContext.saveGraphicsState(); NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
-        draw(singleTime ?? Double(frame) / Double(fps))
+        let time = singleTime ?? Double(frame) / Double(fps)
+        if historyChapter { drawHistory(time) } else { draw(time) }
         NSGraphicsContext.restoreGraphicsState()
         try bitmap.representation(using: .png, properties: [:])!.write(to: output.appendingPathComponent(String(format: "%04d.png", frame)))
     }
