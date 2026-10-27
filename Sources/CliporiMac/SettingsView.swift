@@ -4,6 +4,7 @@ import ServiceManagement
 
 struct SettingsView: View {
     @ObservedObject var app: AppModel
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @State private var draft = Preferences()
     @State private var apiKey = ""
     @State private var selectedTab = 0
@@ -81,6 +82,21 @@ struct SettingsView: View {
             Button(L("自定义各个快捷键")) { selectedTab = 4 }
             Divider()
             Picker(L("外观"), selection: $draft.appearance) { Text(L("跟随系统")).tag("system"); Text(L("浅色")).tag("light"); Text(L("深色")).tag("dark") }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(L("背景不透明度"))
+                    Spacer()
+                    Text(draft.shelfBackgroundOpacity, format: .percent.precision(.fractionLength(0)))
+                        .monospacedDigit().foregroundStyle(.secondary)
+                }
+                Slider(value: $draft.shelfBackgroundOpacity, in: 0...1, step: 0.05) {
+                    Text(L("背景不透明度"))
+                }.labelsHidden().disabled(reduceTransparency)
+                Text(L(reduceTransparency
+                    ? "系统已开启“降低透明度”，卡片栏使用不透明背景。"
+                    : "数值越高，底下窗口的干扰越少；100% 完全不透明。保存设置后生效。"))
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+            }
             Picker(L("语言"), selection: $draft.language) { ForEach(AppLanguage.allCases, id: \.self) { Text($0.title).tag($0) } }
             Toggle(L("暂停自动记录"), isOn: $draft.capturePaused)
             Toggle(L("登录时启动"), isOn: $launchAtLogin).onChange(of: launchAtLogin) { _, enabled in

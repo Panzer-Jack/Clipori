@@ -2,6 +2,37 @@ import XCTest
 @testable import CliporiCore
 
 final class PreferencesTests: XCTestCase {
+    func testShelfOpacityDefaultsAndLegacyPreferences() throws {
+        XCTAssertEqual(Preferences().shelfBackgroundOpacity, 0.85)
+        for json in [#"{}"#, #"{"appearance":"dark","shelfBackgroundOpacity":null}"#] {
+            let preferences = try JSONDecoder().decode(Preferences.self, from: Data(json.utf8))
+            XCTAssertEqual(preferences.shelfBackgroundOpacity, 0.85)
+        }
+    }
+
+    func testShelfOpacityRoundTripAndBounds() throws {
+        for value in [0.0, 0.35, 0.85, 1.0] {
+            var preferences = Preferences()
+            preferences.shelfBackgroundOpacity = value
+            let reopened = try JSONDecoder().decode(Preferences.self, from: JSONEncoder().encode(preferences))
+            XCTAssertEqual(reopened.shelfBackgroundOpacity, value)
+        }
+        for (value, expected) in [(-0.5, 0.0), (1.5, 1.0)] {
+            let json = "{\"shelfBackgroundOpacity\":\(value)}"
+            let decoded = try JSONDecoder().decode(Preferences.self, from: Data(json.utf8))
+            XCTAssertEqual(decoded.shelfBackgroundOpacity, expected)
+            var preferences = Preferences()
+            preferences.shelfBackgroundOpacity = value
+            XCTAssertEqual(preferences.shelfBackgroundOpacity, expected)
+        }
+        for value in [Double.nan, .infinity, -.infinity] {
+            var preferences = Preferences()
+            preferences.shelfBackgroundOpacity = value
+            XCTAssertEqual(preferences.shelfBackgroundOpacity, 0.85)
+            XCTAssertNoThrow(try JSONEncoder().encode(preferences))
+        }
+    }
+
     func testLanguageFollowsPrimarySystemLanguageAndExplicitOverride() {
         for identifier in ["zh", "zh-Hans-CN", "zh-Hant-TW", "zh-HK"] {
             XCTAssertEqual(AppLanguage.system.resolved(preferredLanguages: [identifier]), .chinese)

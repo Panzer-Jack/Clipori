@@ -99,6 +99,10 @@ public struct Preferences: Codable, Equatable, Sendable {
     /// Zero means forever. All records share this rule unless explicitly protected.
     public var retentionDays: Int = 30
     public var appearance: String = "system"
+    public static let defaultShelfBackgroundOpacity = 0.85
+    public var shelfBackgroundOpacity: Double = defaultShelfBackgroundOpacity {
+        didSet { shelfBackgroundOpacity = Self.normalizedShelfBackgroundOpacity(shelfBackgroundOpacity) }
+    }
     public var capturePaused: Bool = false
     public var moveToFrontAfterUse: Bool = true
     public var ignoredApps: [String] = []
@@ -107,7 +111,7 @@ public struct Preferences: Codable, Equatable, Sendable {
     public var language = AppLanguage.system
     public var shortcuts = ShortcutPreferences()
     public init() {}
-    enum CodingKeys: String, CodingKey { case retentionDays, appearance, capturePaused, ignoredApps, ai, iCloudEnabled, language, shortcuts
+    enum CodingKeys: String, CodingKey { case retentionDays, appearance, shelfBackgroundOpacity, capturePaused, ignoredApps, ai, iCloudEnabled, language, shortcuts
         // Preserve the stored preference from versions that promoted only after paste.
         case moveToFrontAfterUse = "moveToFrontAfterPaste"
     }
@@ -115,6 +119,9 @@ public struct Preferences: Codable, Equatable, Sendable {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         retentionDays = try values.decodeIfPresent(Int.self, forKey: .retentionDays) ?? 0
         appearance = try values.decodeIfPresent(String.self, forKey: .appearance) ?? "system"
+        shelfBackgroundOpacity = Self.normalizedShelfBackgroundOpacity(
+            try values.decodeIfPresent(Double.self, forKey: .shelfBackgroundOpacity) ?? Self.defaultShelfBackgroundOpacity
+        )
         capturePaused = try values.decodeIfPresent(Bool.self, forKey: .capturePaused) ?? false
         moveToFrontAfterUse = try values.decodeIfPresent(Bool.self, forKey: .moveToFrontAfterUse) ?? true
         ignoredApps = try values.decodeIfPresent([String].self, forKey: .ignoredApps) ?? []
@@ -122,6 +129,9 @@ public struct Preferences: Codable, Equatable, Sendable {
         iCloudEnabled = try values.decodeIfPresent(Bool.self, forKey: .iCloudEnabled) ?? false
         language = try values.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .system
         shortcuts = try values.decodeIfPresent(ShortcutPreferences.self, forKey: .shortcuts) ?? ShortcutPreferences()
+    }
+    private static func normalizedShelfBackgroundOpacity(_ value: Double) -> Double {
+        value.isFinite ? min(1, max(0, value)) : defaultShelfBackgroundOpacity
     }
 }
 

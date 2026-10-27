@@ -10,6 +10,15 @@ final class MemoryStoreTests: XCTestCase {
     }
     override func tearDownWithError() throws { store = nil; try? FileManager.default.removeItem(at: directory) }
 
+    func testShelfOpacityPersistsWhenStoreReopens() async throws {
+        var preferences = try await store.preferences()
+        preferences.shelfBackgroundOpacity = 0.6
+        try await store.savePreferences(preferences)
+        let reopened = try MemoryStore(url: directory.appendingPathComponent("test.sqlite"))
+        let saved = try await reopened.preferences()
+        XCTAssertEqual(saved.shelfBackgroundOpacity, 0.6)
+    }
+
     func testDefaultMonthWithForeverAndExplicitExceptions() async throws {
         let now = Date()
         var automatic = Memory(body: "old copied text", source: "Safari", now: now.addingTimeInterval(-100 * 86400))

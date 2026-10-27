@@ -3,6 +3,9 @@ import Foundation
 
 enum Translations {
     static let english: [String: String] = [
+        "背景不透明度": "Background opacity",
+        "系统已开启“降低透明度”，卡片栏使用不透明背景。": "Reduce Transparency is enabled in system settings. The shelf uses an opaque background.",
+        "数值越高，底下窗口的干扰越少；100% 完全不透明。保存设置后生效。": "Higher values reduce distractions from windows behind the shelf; 100% is fully opaque. Applies after saving settings.",
         "仅自动分类开启后新收录的记录，不处理历史记录，也不覆盖手动分类。": "Automatically classify only newly captured records while enabled. History and manual categories are left unchanged.",
         "分类未分类记录": "Classify uncategorized records",
         "已处理 %d / %d 条": "Processed %d / %d records",
