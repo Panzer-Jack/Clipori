@@ -27,7 +27,21 @@ final class ShelfBackgroundTests: XCTestCase {
             .background(behind)
             .environment(\.colorScheme, scheme)
         let renderer = ImageRenderer(content: view)
-        let bitmap = NSBitmapImageRep(cgImage: try XCTUnwrap(renderer.cgImage))
+        // Render these shapes into a CPU bitmap. ImageRenderer.cgImage initializes
+        // Metal, which can abort on the virtual GPU of hosted Intel runners.
+        let context = try XCTUnwrap(CGContext(
+            data: nil, width: 100, height: 100, bitsPerComponent: 8, bytesPerRow: 0,
+            space: try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB)),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        var rendered = false
+        renderer.render { size, draw in
+            XCTAssertEqual(size, CGSize(width: 100, height: 100))
+            draw(context)
+            rendered = true
+        }
+        XCTAssertTrue(rendered, "The background must render before sampling its pixels")
+        let bitmap = NSBitmapImageRep(cgImage: try XCTUnwrap(context.makeImage()))
         return try XCTUnwrap(bitmap.colorAt(x: 50, y: 50)?.usingColorSpace(.sRGB))
     }
 }
