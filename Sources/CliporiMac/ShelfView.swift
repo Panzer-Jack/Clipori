@@ -30,15 +30,7 @@ struct ShelfView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
-            ZStack {
-                ShelfGlass(reduceTransparency: reduceTransparency)
-                if reduceTransparency {
-                    Rectangle().fill(scheme == .dark ? Color(white: 0.12) : Color(white: 0.95))
-                } else {
-                    Rectangle().fill(scheme == .dark ? Color.black.opacity(0.08) : Color.white.opacity(0.08))
-                    LinearGradient(colors: [.white.opacity(scheme == .dark ? 0.09 : 0.24), .clear, Color.clipori.opacity(0.018)], startPoint: .topLeading, endPoint: .bottomTrailing)
-                }
-            }
+            ShelfBackground(opacity: model.preferences.shelfBackgroundOpacity, reduceTransparency: reduceTransparency)
         }
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).strokeBorder(
@@ -254,13 +246,6 @@ private struct MemoryCard: View {
         if selected { return tint.opacity(0.72) }
         return .white.opacity(scheme == .dark ? (hover ? 0.28 : 0.13) : (hover ? 0.85 : 0.65))
     }
-    private var glassBackground: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 16).fill(scheme == .dark ? Color.black.opacity(0.08) : Color.white.opacity(0.24))
-            RoundedRectangle(cornerRadius: 16).fill(LinearGradient(colors: [.white.opacity(hover ? 0.12 : 0.075), .white.opacity(0.015)], startPoint: .topLeading, endPoint: .bottomTrailing))
-            RoundedRectangle(cornerRadius: 16).fill(tint.opacity(selected ? 0.045 : 0.018))
-        }
-    }
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 7) {
@@ -296,7 +281,7 @@ private struct MemoryCard: View {
                 Text(record.createdAt.formatted(.dateTime.month(.twoDigits).day(.twoDigits).hour().minute())).font(.system(size: 9)).foregroundStyle(.secondary)
             }
         }.padding(16).frame(width: 237, height: 233)
-            .background(glassBackground)
+            .background(ShelfCardBackground(tint: tint, selected: selected, hover: hover))
             .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(borderColor, lineWidth: selected ? 1.2 : 0.65))
             .shadow(color: Color.black.opacity(scheme == .dark ? (hover ? 0.11 : 0.06) : (hover ? 0.07 : 0.035)), radius: hover ? 10 : 6, y: hover ? 5 : 3)
             .scaleEffect(hover && motion ? 1.018 : 1)
