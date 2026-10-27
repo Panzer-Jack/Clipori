@@ -65,8 +65,8 @@ iPhone 通过“粘贴”按钮保存内容，不在后台读取系统剪贴板�
 参考 [Copiwaifu 的发布流程](https://github.com/Panzer-Jack/Copiwaifu/blob/main/.github/workflows/publish-to-release.yml)，推送 `app-v*` 标签即可发布 Clipori。先提交并推送应用代码、脚本和工作流，再在需要发布的提交上执行：
 
 ```sh
-git tag -a app-v0.1.0 -m "Clipori 0.1.0"
-git push origin app-v0.1.0
+git tag -a app-v0.3.0 -m "Clipori 0.3.0"
+git push origin app-v0.3.0
 ```
 
 GitHub Actions 会在 Apple Silicon 和 Intel 上运行测试，构建两套 DMG、ZIP，验证校验值，自动生成更新说明，并将所有安装包上传到草稿。全部成功后才公开 Release。应用版本取自标签，构建号取自工作流运行编号，每次发布不必修改 plist。
